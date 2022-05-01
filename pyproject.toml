@@ -16,6 +16,7 @@ conllu = "^4.4.2"
 transformers = "^4.18.0"
 datasets = "^2.1.0"
 jupyter = "^1.0.0"
+torch = "^1.11.0"
 
 [tool.poetry.dev-dependencies]
 
