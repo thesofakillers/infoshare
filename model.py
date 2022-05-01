@@ -14,13 +14,21 @@ import torchmetrics.functional as TF
 class POSClassifier(LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
-        parser = parent_parser.add_argument_group('POS Classifier')
+        parser = parent_parser.add_argument_group("POS Classifier")
 
-        parser.add_argument('--encoder_name', type=str, default='roberta-base',
-                            help='The name of the HuggingFace model to use as an encoder.')
+        parser.add_argument(
+            "--encoder_name",
+            type=str,
+            default="roberta-base",
+            help="The name of the HuggingFace model to use as an encoder.",
+        )
 
-        parser.add_argument('--lr', type=float, default=1e-3,
-                            help='The initial learning rate for the classifier.')
+        parser.add_argument(
+            "--lr",
+            type=float,
+            default=1e-3,
+            help="The initial learning rate for the classifier.",
+        )
 
         return parent_parser
 
@@ -32,9 +40,7 @@ class POSClassifier(LightningModule):
         n_hidden = self.bert.config.hidden_size
 
         self.classifier = nn.Sequential(
-            nn.Linear(n_hidden, n_hidden),
-            nn.Tanh(),
-            nn.Linear(n_hidden, n_classes)
+            nn.Linear(n_hidden, n_hidden), nn.Tanh(), nn.Linear(n_hidden, n_classes)
         )
 
     @staticmethod
@@ -47,7 +53,9 @@ class POSClassifier(LightningModule):
 
         return bert
 
-    def forward(self, encoded_input: BatchEncoding, word_positions: List[Tensor]) -> Tensor:
+    def forward(
+        self, encoded_input: BatchEncoding, word_positions: List[Tensor]
+    ) -> Tensor:
         batch_output = []
 
         bert_output = self.bert(**encoded_input).last_hidden_state
@@ -61,11 +69,16 @@ class POSClassifier(LightningModule):
             del word_tensors[-1]
 
             # average embeddings per word
-            avg_tensors = {t_id: torch.vstack(w_t).mean(dim=0) for t_id, w_t in word_tensors.items()}
+            avg_tensors = {
+                t_id: torch.vstack(w_t).mean(dim=0)
+                for t_id, w_t in word_tensors.items()
+            }
 
             # order tensors by their corresponding word id
             max_word_id = max(wpos_map)
-            ordered_tensors = torch.vstack([avg_tensors[i] for i in range(max_word_id + 1)])
+            ordered_tensors = torch.vstack(
+                [avg_tensors[i] for i in range(max_word_id + 1)]
+            )
 
             # somehow re-batch items
             batch_output += ordered_tensors
@@ -74,7 +87,11 @@ class POSClassifier(LightningModule):
         batch_output = torch.vstack(batch_output)
         return self.classifier(batch_output)
 
-    def step(self, batch: Tuple[List[List[BatchEncoding]], List[Tensor], List[Tensor]], stage: str) -> Tensor:
+    def step(
+        self,
+        batch: Tuple[List[List[BatchEncoding]], List[Tensor], List[Tensor]],
+        stage: str,
+    ) -> Tensor:
         encodings, token_pos, wordpiece_map = batch
         flat_pos = torch.hstack(token_pos)
 
@@ -82,19 +99,31 @@ class POSClassifier(LightningModule):
         loss = F.cross_entropy(logits, flat_pos)
         acc = TF.accuracy(logits, flat_pos)
 
-        self.log(f'{stage}_acc', acc, batch_size=len(flat_pos))
-        self.log(f'{stage}_loss', loss, batch_size=len(flat_pos))
+        self.log(f"{stage}_acc", acc, batch_size=len(flat_pos))
+        self.log(f"{stage}_loss", loss, batch_size=len(flat_pos))
 
         return loss
 
-    def training_step(self, batch: Tuple[List[List[BatchEncoding]], List[Tensor], List[Tensor]], _: Tensor) -> Tensor:
-        return self.step(batch, 'train')
+    def training_step(
+        self,
+        batch: Tuple[List[List[BatchEncoding]], List[Tensor], List[Tensor]],
+        _: Tensor,
+    ) -> Tensor:
+        return self.step(batch, "train")
 
-    def validation_step(self, batch: Tuple[List[List[BatchEncoding]], List[Tensor], List[Tensor]], _: Tensor) -> Tensor:
-        return self.step(batch, 'val')
+    def validation_step(
+        self,
+        batch: Tuple[List[List[BatchEncoding]], List[Tensor], List[Tensor]],
+        _: Tensor,
+    ) -> Tensor:
+        return self.step(batch, "val")
 
-    def test_step(self, batch: Tuple[List[List[BatchEncoding]], List[Tensor], List[Tensor]], _: Tensor) -> Tensor:
-        return self.step(batch, 'test')
+    def test_step(
+        self,
+        batch: Tuple[List[List[BatchEncoding]], List[Tensor], List[Tensor]],
+        _: Tensor,
+    ) -> Tensor:
+        return self.step(batch, "test")
 
     def configure_optimizers(self) -> Optimizer:
         return AdamW(self.classifier.parameters(), lr=self.hparams.lr)
