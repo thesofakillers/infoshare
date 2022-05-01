@@ -12,6 +12,10 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.8"
+conllu = "^4.4.2"
+transformers = "^4.18.0"
+datasets = "^2.1.0"
+jupyter = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
 
