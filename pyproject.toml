@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "bert-infoshare"
+version = "0.1.0"
+description = "Studying information-sharing in BERT"
+authors = [
+  "Giulio Starace <giulio.starace@gmail.com>",
+  "Konstantinos Papakostas <dinospk1999@gmail.com>",
+  "Apostolos Panagiotopoulos <ap.panagiotopoulos@gmail.com>",
+  "Matteo Rosati <matteo.rosati98@gmail.com>",
+]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
