@@ -127,3 +127,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# IDEA settings directory
+.idea/
+
+# Dataset directory
+data/
+
+# PL logs directory
+lightning_logs/
