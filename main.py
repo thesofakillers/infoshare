@@ -18,9 +18,7 @@ def train(args: Namespace):
 
     # load tokenizer
     tokenizer = AutoTokenizer.from_pretrained(args.encoder_name, add_prefix_space=True)
-    tokenize_fn = partial(
-        tokenizer, is_split_into_words=True, return_tensors="pt", padding=True
-    )
+    tokenize_fn = partial(tokenizer, is_split_into_words=True, return_tensors="pt", padding=True)
 
     # load PL datamodule
     ud = UDDataModule(
@@ -43,15 +41,11 @@ def train(args: Namespace):
         model = POSClassifier(**model_args)
 
     # configure logger
-    logger = TensorBoardLogger(
-        args.log_dir, name=args.encoder_name, default_hp_metric=False
-    )
+    logger = TensorBoardLogger(args.log_dir, name=args.encoder_name, default_hp_metric=False)
 
     # configure callbacks
     callback_cfg = {"monitor": "val_acc", "mode": "max"}
-    es_cb = EarlyStopping(
-        **callback_cfg
-    )  # TODO: maybe setup other early stopping parameters
+    es_cb = EarlyStopping(**callback_cfg)  # TODO: maybe setup other early stopping parameters
     ckpt_cb = ModelCheckpoint(save_top_k=1, **callback_cfg)
 
     # set up trainer
@@ -74,9 +68,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
 
     # Trainer arguments
-    parser.add_argument(
-        "--seed", type=int, default=420, help="The seed to use for the RNG."
-    )
+    parser.add_argument("--seed", type=int, default=420, help="The seed to use for the RNG.")
 
     parser.add_argument(
         "--max_epochs",
@@ -98,9 +90,7 @@ if __name__ == "__main__":
         help="Whether to NOT use a GPU accelerator for training.",
     )
 
-    parser.add_argument(
-        "--checkpoint", type=str, help="The checkpoint from which to load a model."
-    )
+    parser.add_argument("--checkpoint", type=str, help="The checkpoint from which to load a model.")
 
     # Model arguments
     POSClassifier.add_model_specific_args(parser)
