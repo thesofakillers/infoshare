@@ -64,9 +64,7 @@ def train(args: Namespace):
 
     trainer_args = {}
     if args.checkpoint:
-        # THIS DOES NOT WORK IN PL 1.6.0 WHEN USING EARLY STOPPING OR AN LR SCHEDULER THAT MONITORS VAL LOSS/ACC
-        # trainer_args['ckpt_path'] = args.checkpoint
-        pass
+        trainer_args["ckpt_path"] = args.checkpoint
 
     # fit
     trainer.fit(model, ud, **trainer_args)
