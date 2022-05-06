@@ -57,6 +57,9 @@ class BERTEncoderForWordClassification(Module):
         else:
             raise ValueError(f"Unknown aggregation function: {self.aggregation}")
 
+    def hidden_size(self) -> int:
+        return self.model.config.hidden_size
+
     @staticmethod
     def _get_tokens_per_word(word_ids: List[int]) -> Tuple[List[int], Tuple[int, int]]:
         # TODO @tolis: documentation for `diff`

@@ -1,15 +1,16 @@
 from argparse import ArgumentParser, Namespace
 from data import UDDataModule
 from functools import partial
-from model import POSClassifier
+from models.pos_classifier import POSClassifier
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, logging
 
 import os
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+logging.set_verbosity_error()
 
 
 def train(args: Namespace):
@@ -25,11 +26,9 @@ def train(args: Namespace):
     ud = UDDataModule(
         args.treebank_name,
         tokenize_fn,
-        tokenizer.pad_token,
         args.data_dir,
         args.batch_size,
         args.num_workers,
-        args.enable_progress_bar,
     )
 
     ud.prepare_data()
