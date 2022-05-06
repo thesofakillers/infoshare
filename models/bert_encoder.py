@@ -1,13 +1,14 @@
-import numpy as np
-import torch
-import torch.nn as nn
-
 from torch import Tensor
+from torch.nn import Module
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoModel, BatchEncoding
+from typing import List, Tuple
+
+import numpy as np
+import torch
 
 
-class BERTEncoderForWordClassification(nn.Module):
+class BERTEncoderForWordClassification(Module):
     def __init__(self, encoder_name: str, aggregation: str = "mean", output_layer: int = -1):
         super().__init__()
 
@@ -22,7 +23,7 @@ class BERTEncoderForWordClassification(nn.Module):
             param.requires_grad = False
 
     def forward(self, batch_encoding: BatchEncoding) -> Tensor:
-        # Get BERT representations for each (subword) token
+        # Get BERT representations for each (sub-word) token
         batch_output_per_token = self.model(
             **batch_encoding,
             output_hidden_states=True,
@@ -31,17 +32,17 @@ class BERTEncoderForWordClassification(nn.Module):
         # Aggregate the BERT representations for each word
         batch_output_per_word = []
         for sequence_idx, sequence_output_per_token in enumerate(batch_output_per_token):
-            # Get word lengths in tokens
+            # Get amount of (sub-word) tokens corresponding to each word
             word_ids = batch_encoding.word_ids(sequence_idx)
-            lengths, (start, end) = BERTEncoderForWordClassification._get_tokens_per_word(word_ids)
+            split_idx, (start, end) = self._get_tokens_per_word(word_ids)
 
-            # Split, aggregate, and concatenate BERT representations
-            sequence_output_per_word = torch.split(sequence_output_per_token[start:end], lengths)
+            # Split, aggregate and concatenate BERT representations
+            sequence_output_per_word = torch.split(sequence_output_per_token[start:end], split_idx)
             sequence_output_per_word = list(map(self.aggregation_fn, sequence_output_per_word))
             sequence_output_per_word = torch.vstack(sequence_output_per_word)
 
             # Append sequence output to batch output
-            batch_output_per_word.append(sequence_output_per_word)
+            batch_output_per_word += [sequence_output_per_word]
 
         # Pad sequence representations
         batch_output_per_word = pad_sequence(batch_output_per_word, batch_first=True)
@@ -57,14 +58,15 @@ class BERTEncoderForWordClassification(nn.Module):
             raise ValueError(f"Unknown aggregation function: {self.aggregation}")
 
     @staticmethod
-    def _get_tokens_per_word(word_ids):
+    def _get_tokens_per_word(word_ids: List[int]) -> Tuple[List[int], Tuple[int, int]]:
+        # TODO @tolis: documentation for `diff`
         diff = lambda x: np.diff(np.concatenate([[0], x, [np.max(x) + 1]]))
 
-        # Get sequence boundaries
-        seq = [1 if word_id is not None else 0 for word_id in word_ids]
+        # Get sequence boundaries (excluding special tokens)
+        seq = [1 if word_id else 0 for word_id in word_ids]
         seq_start, seq_end, _ = np.where(diff(seq))[0]
 
-        # Get words' lengths in tokens
+        # Calculate the amount of sub-words corresponding to each word
         word_ids = np.array(word_ids[seq_start:seq_end]) + 1
         seq_lengths = diff(np.where(diff(word_ids))[0])[1:-1]
 
