@@ -66,7 +66,7 @@ class BERTEncoderForWordClassification(Module):
         diff = lambda x: np.diff(np.concatenate([[0], x, [np.max(x) + 1]]))
 
         # Get sequence boundaries (excluding special tokens)
-        seq = [1 if word_id else 0 for word_id in word_ids]
+        seq = [1 if word_id is not None else 0 for word_id in word_ids]
         seq_start, seq_end, _ = np.where(diff(seq))[0]
 
         # Calculate the amount of sub-words corresponding to each word
