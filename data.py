@@ -54,6 +54,7 @@ class UDDataModule(LightningDataModule):
             self.ud_val = dataset["validation"]
 
             if self.hparams.task == "POS":
+                self.id_to_cname = self.ud_train.info.features['upos'].feature.names
                 self.num_classes = self.ud_train.info.features["upos"].feature.num_classes
             elif self.hparams.task == "DEP":
                 # Aggregate all classes from the train dataset
@@ -62,6 +63,7 @@ class UDDataModule(LightningDataModule):
                 main_classes = [drel for drel in all_classes if ":" not in drel]
                 # Create a mapping from (main) class names to unique ids
                 self.cname_to_id = {cname: i for i, cname in enumerate(main_classes)}
+                self.id_to_cname = {i: cname for cname, i in self.cname_to_id.items()}
                 # Add a mapping from the language-specific classes to the broader ones
                 for spec_class in all_classes.difference(main_classes):
                     col_idx = spec_class.index(":")
