@@ -54,7 +54,7 @@ class UDDataModule(LightningDataModule):
             self.ud_val = dataset["validation"]
 
             if self.hparams.task == "POS":
-                self.id_to_cname = self.ud_train.info.features['upos'].feature.names
+                self.id_to_cname = self.ud_train.info.features["upos"].feature.names
                 self.num_classes = self.ud_train.info.features["upos"].feature.num_classes
             elif self.hparams.task == "DEP":
                 # Aggregate all classes from the train dataset
@@ -74,6 +74,8 @@ class UDDataModule(LightningDataModule):
 
         if stage == "test" or stage is None:
             self.ud_test = dataset["test"]
+        if stage == "debug" or stage is None:
+            self.ud_debug = dataset["validation"].select(list(range(50)))
 
     def get_collate_fn(self) -> Callable:
         if self.hparams.task == "POS":
@@ -122,4 +124,12 @@ class UDDataModule(LightningDataModule):
             batch_size=self.hparams.batch_size,
             num_workers=self.hparams.num_workers,
             collate_fn=self.get_collate_fn(),
+        )
+
+    def debug_dataloader(self) -> DataLoader:
+        return DataLoader(
+            self.ud_debug,
+            batch_size=self.hparams.batch_size,
+            num_workers=self.hparams.num_workers,
+            collate_fn=self.collate_fn,
         )
