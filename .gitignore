@@ -136,3 +136,6 @@ data/
 
 # PL logs directory
 lightning_logs/
+
+# MacOS
+.DS_Store
