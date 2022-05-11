@@ -38,14 +38,14 @@ class BERTEncoderForWordClassification(Module):
         self,
         encoder_name: str,
         aggregation: str = "mean",
-        output_layer: int = -1,
+        probe_layer: int = -1,
         **kwargs,
     ):
         super().__init__()
 
         self.encoder_name = encoder_name
         self.aggregation = aggregation
-        self.output_layer = output_layer
+        self.probe_layer = probe_layer
 
         # Load the pretrained model
         self.model = AutoModel.from_pretrained(encoder_name)
@@ -59,7 +59,7 @@ class BERTEncoderForWordClassification(Module):
         batch_output_per_token = self.model(
             **batch_encoding,
             output_hidden_states=True,
-        ).hidden_states[self.output_layer]
+        ).hidden_states[self.probe_layer]
 
         # Aggregate the BERT representations for each word
         batch_output_per_word = []
