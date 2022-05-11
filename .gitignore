@@ -143,3 +143,5 @@ lightning_logs/
 # LISA outputs
 *out
 
+# checkpoint files
+*.ckpt
