@@ -66,6 +66,21 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
     def get_logits_targets(self, batch: Tuple) -> Tuple[Tensor, Tensor]:
         raise NotImplementedError()
 
+    @torch.no_grad()
+    def calculate_average_accuracy(self, logits: Tensor, targets: Tensor) -> Tensor:
+        # Extract sequence length from number of POS tags to predict
+        sequence_lengths = [len(_) for _ in targets]
+
+        # Calculate accuracy as the mean of all sentences' accuracy
+        acc = torch.tensor(
+            [
+                TF.accuracy(logits[i, : sequence_lengths[i], :], targets[i])
+                for i in range(len(targets))
+            ]
+        ).mean()
+
+        return acc
+
     def step(self, batch: Tuple, stage: str) -> Tensor:
         logits, targets = self.get_logits_targets(batch)
         batch_size = len(logits)
@@ -78,18 +93,10 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         loss = F.cross_entropy(logits.permute(0, 2, 1), targets_padded, ignore_index=-1)
         # loss = F.cross_entropy(logits.permute(0, 2, 1), targets_padded, ignore_index=-1, reduction='none').mean()
 
-        with torch.no_grad():
-            # Extract sequence length from number of POS tags to predict
-            sequence_lengths = [len(_) for _ in targets]
+        # Calculate average accuracy
+        acc = self.calculate_average_accuracy(logits, targets)
 
-            # Calculate accuracy as the mean of all sentences' accuracy
-            acc = torch.tensor(
-                [
-                    TF.accuracy(logits[i, : sequence_lengths[i], :], targets[i])
-                    for i in range(len(targets))
-                ]
-            ).mean()
-
+        # Log values
         self.log(f"{stage}_acc", acc, batch_size=batch_size)
         self.log(f"{stage}_loss", loss, batch_size=batch_size)
 
