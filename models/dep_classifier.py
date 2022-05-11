@@ -16,11 +16,11 @@ class DEPClassifier(BaseClassifier):
         )
 
     def forward(self, encoded_input: BatchEncoding, heads: List[Tensor]) -> Tensor:
-        output = self.bert(encoded_input)
+        embeddings = self.bert(encoded_input)
 
         classifier_input = []
         # Concatenate each word representation with its head's
-        for (seq, head) in zip(output, heads):
+        for (seq, head) in zip(embeddings, heads):
             seq_nopad = seq[: len(head)]
             parents = seq_nopad[head - 1]
             classifier_input += [
@@ -36,9 +36,9 @@ class DEPClassifier(BaseClassifier):
 
         classifier_input = pad_sequence(classifier_input, batch_first=True)
         output = self.classifier(classifier_input)
-        return output
+        return embeddings, output
 
-    def get_logits_targets(self, batch: Tuple) -> Tuple[Tensor, Tensor]:
+    def process_batch(self, batch: Tuple) -> Tuple[Tensor, Tensor]:
         encoded_inputs, heads, targets = batch
-        logits = self(encoded_inputs, heads)
-        return logits, targets
+        embeddings, logits = self(encoded_inputs, heads)
+        return embeddings, logits, targets

@@ -16,19 +16,18 @@ class POSClassifier(BaseClassifier):
         )
 
     def forward(self, encoded_input: BatchEncoding) -> Tensor:
-        output = self.bert(encoded_input)
-        output = self.classifier(output)
-        return output
+        embeddings = self.bert(encoded_input)
+        output = self.classifier(embeddings)
+        return embeddings, output
 
-    def get_logits_targets(self, batch: Tuple) -> Tuple[Tensor, Tensor]:
+    def process_batch(self, batch: Tuple) -> Tuple[Tensor, Tensor]:
+        """given a batch, returns embeddings, logits and targets"""
         encoded_inputs, targets = batch
-        logits = self(encoded_inputs)
-        return logits, targets
+        embeddings, logits = self(encoded_inputs)
+        return embeddings, logits, targets
 
     def validation_step(self, batch, _):
-        encodings, targets = batch
-        batched_embs = self.bert(encodings)
-        batched_preds = self.classifier(batched_embs)
+        batched_embs, batched_preds, targets = self.process_batch(batch)
         batch_size = len(batched_preds)
 
         acc = self.calculate_average_accuracy(batched_preds, targets)
