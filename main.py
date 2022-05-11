@@ -22,6 +22,7 @@ def train(args: Namespace):
 
     # load PL datamodule
     ud = UDDataModule(
+        args.task,
         args.treebank_name,
         tokenize_fn,
         args.data_dir,
@@ -94,6 +95,13 @@ if __name__ == "__main__":
 
     # Model arguments
     POSClassifier.add_model_specific_args(parser)
+
+    parser.add_argument(
+        "--task",
+        type=str,
+        default="POS",
+        help="The task to train the probing classifier on.",
+    )
 
     parser.add_argument(
         "--treebank_name",
