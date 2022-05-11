@@ -67,21 +67,31 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         raise NotImplementedError()
 
     @torch.no_grad()
-    def calculate_average_accuracy(self, logits: Tensor, targets: Tensor) -> Tensor:
+    def calculate_average_accuracy(
+        self,
+        logits: Tensor,
+        targets: Tensor,
+        average: str = "micro",
+    ) -> Tensor:
         # Extract sequence length from number of POS tags to predict
         sequence_lengths = [len(_) for _ in targets]
 
-        # Calculate accuracy as the mean of all sentences' accuracy
-        acc = torch.tensor(
+        # Calculate accuracy as the mean over all sentences
+        acc = torch.vstack(
             [
-                TF.accuracy(logits[i, : sequence_lengths[i], :], targets[i])
+                TF.accuracy(
+                    preds=logits[i, : sequence_lengths[i], :],
+                    target=targets[i],
+                    average=average,
+                    num_classes=logits.shape[-1],
+                )
                 for i in range(len(targets))
             ]
-        ).mean()
+        ).nanmean(dim=0)
 
         return acc
 
-    def step(self, batch: Tuple, stage: str) -> Tensor:
+    def fit_step(self, batch: Tuple, stage: str) -> Tensor:
         logits, targets = self.get_logits_targets(batch)
         batch_size = len(logits)
 
@@ -103,13 +113,24 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         return loss
 
     def training_step(self, batch: Tuple, _: Tensor) -> Tensor:
-        return self.step(batch, "train")
+        return self.fit_step(batch, "train")
 
     def validation_step(self, batch: Tuple, _: Tensor) -> Tensor:
-        return self.step(batch, "val")
+        return self.fit_step(batch, "val")
 
-    def test_step(self, batch: Tuple, _: Tensor) -> Tensor:
-        return self.step(batch, "test")
+    def test_step(self, batch: Tuple, _: Tensor):
+        logits, targets = self.get_logits_targets(batch)
+        batch_size = len(logits)
+
+        # Calculate average accuracies (both micro & per-class)
+        acc_avg = self.calculate_average_accuracy(logits, targets)
+        acc_per_class = self.calculate_average_accuracy(logits, targets, "none")
+
+        # Log values
+        self.log("test_acc_avg", acc_avg, batch_size=batch_size)
+        for i, acc_i in enumerate(acc_per_class):
+            class_name = self.hparams.class_map[i]
+            self.log(f"test_acc_{class_name}", acc_i, batch_size=batch_size)
 
     def configure_optimizers(self) -> Optimizer:
         return AdamW(self.classifier.parameters(), lr=self.hparams.lr)
