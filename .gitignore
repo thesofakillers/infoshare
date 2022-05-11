@@ -139,3 +139,7 @@ lightning_logs/
 
 # MacOS
 .DS_Store
+
+# LISA outputs
+*out
+
