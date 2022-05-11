@@ -1,7 +1,7 @@
 from argparse import ArgumentParser, Namespace
 from data import UDDataModule
 from functools import partial
-from models.pos_classifier import POSClassifier
+from models import *
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -33,13 +33,31 @@ def train(args: Namespace):
     ud.prepare_data()
     ud.setup("fit")
 
+    # load model class constructor
+    if args.task == "DEP":
+        model_class = DEPClassifier
+    elif args.task == "POS":
+        model_class = POSClassifier
+    else:
+        raise Exception(f"Unsupported task: {args.task}")
+
+    # load BERT encoder
+    bert = BERTEncoderForWordClassification(**vars(args))
+
     # load PL module
     if args.checkpoint:
         print(f"Loading from checkpoint: {args.checkpoint}")
-        model = POSClassifier.load_from_checkpoint(args.checkpoint)
+        model = model_class.load_from_checkpoint(args.checkpoint)
     else:
-        model_args = {"n_classes": ud.num_classes, **vars(args)}
-        model = POSClassifier(**model_args)
+        model_args = {
+            "n_hidden": bert.hidden_size(),
+            "n_classes": ud.num_classes,
+            "class_map": ud.id_to_cname,
+            **vars(args),
+        }
+        model = model_class(**model_args)
+
+    model.set_encoder(bert)
 
     # configure logger
     logger = TensorBoardLogger(args.log_dir, name=args.encoder_name, default_hp_metric=False)
@@ -81,7 +99,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--enable_progress_bar",
         action="store_true",
-        default=True,
+        default=True,  # TODO: remove this before running on lisa
         help="Whether to enable the progress bar (NOT recommended when logging to file).",
     )
 
@@ -94,12 +112,14 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint", type=str, help="The checkpoint from which to load a model.")
 
     # Model arguments
-    POSClassifier.add_model_specific_args(parser)
+    BaseClassifier.add_model_specific_args(parser)
+    BERTEncoderForWordClassification.add_model_specific_args(parser)
 
     parser.add_argument(
         "--task",
         type=str,
         default="POS",
+        choices=["DEP", "POS"],
         help="The task to train the probing classifier on.",
     )
 

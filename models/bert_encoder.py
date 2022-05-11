@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 from torch import Tensor
 from torch.nn import Module
 from torch.nn.utils.rnn import pad_sequence
@@ -9,9 +10,40 @@ import torch
 
 
 class BERTEncoderForWordClassification(Module):
-    def __init__(self, encoder_name: str, aggregation: str = "mean", output_layer: int = -1):
+    @staticmethod
+    def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
+        parser = parent_parser.add_argument_group("BERT Encoder")
+        parser.add_argument(
+            "--encoder_name",
+            type=str,
+            default="roberta-base",
+            help="The name of the HuggingFace model to use as an encoder.",
+        )
+        parser.add_argument(
+            "--aggregation",
+            type=str,
+            default="mean",
+            choices=["first", "max", "mean"],
+            help="The method for wordpiece embedding aggregation.",
+        )
+        parser.add_argument(
+            "--probe_layer",
+            type=int,
+            default=-1,
+            help="The index of the encoder layer to output for probing.",
+        )
+        return parent_parser
+
+    def __init__(
+        self,
+        encoder_name: str,
+        aggregation: str = "mean",
+        output_layer: int = -1,
+        **kwargs,
+    ):
         super().__init__()
 
+        self.encoder_name = encoder_name
         self.aggregation = aggregation
         self.output_layer = output_layer
 
