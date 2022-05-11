@@ -1,15 +1,16 @@
 from argparse import ArgumentParser, Namespace
 from data import UDDataModule
 from functools import partial
-from model import POSClassifier
+from models.pos_classifier import POSClassifier
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, logging
 
 import os
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+logging.set_verbosity_error()
 
 
 def train(args: Namespace):
@@ -17,19 +18,15 @@ def train(args: Namespace):
 
     # load tokenizer
     tokenizer = AutoTokenizer.from_pretrained(args.encoder_name, add_prefix_space=True)
-    tokenize_fn = partial(
-        tokenizer, is_split_into_words=True, return_tensors="pt", padding=True
-    )
+    tokenize_fn = partial(tokenizer, is_split_into_words=True, return_tensors="pt", padding=True)
 
     # load PL datamodule
     ud = UDDataModule(
         args.treebank_name,
         tokenize_fn,
-        tokenizer.pad_token,
         args.data_dir,
         args.batch_size,
         args.num_workers,
-        args.enable_progress_bar,
     )
 
     ud.prepare_data()
@@ -44,15 +41,11 @@ def train(args: Namespace):
         model = POSClassifier(**model_args)
 
     # configure logger
-    logger = TensorBoardLogger(
-        args.log_dir, name=args.encoder_name, default_hp_metric=False
-    )
+    logger = TensorBoardLogger(args.log_dir, name=args.encoder_name, default_hp_metric=False)
 
     # configure callbacks
     callback_cfg = {"monitor": "val_acc", "mode": "max"}
-    es_cb = EarlyStopping(
-        **callback_cfg
-    )  # TODO: maybe setup other early stopping parameters
+    es_cb = EarlyStopping(**callback_cfg)  # TODO: maybe setup other early stopping parameters
     ckpt_cb = ModelCheckpoint(save_top_k=1, **callback_cfg)
 
     # set up trainer
@@ -65,9 +58,7 @@ def train(args: Namespace):
 
     trainer_args = {}
     if args.checkpoint:
-        # THIS DOES NOT WORK IN PL 1.6.0 WHEN USING EARLY STOPPING OR AN LR SCHEDULER THAT MONITORS VAL LOSS/ACC
-        # trainer_args['ckpt_path'] = args.checkpoint
-        pass
+        trainer_args["ckpt_path"] = args.checkpoint
 
     # fit
     trainer.fit(model, ud, **trainer_args)
@@ -77,9 +68,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
 
     # Trainer arguments
-    parser.add_argument(
-        "--seed", type=int, default=420, help="The seed to use for the RNG."
-    )
+    parser.add_argument("--seed", type=int, default=420, help="The seed to use for the RNG.")
 
     parser.add_argument(
         "--max_epochs",
@@ -101,9 +90,7 @@ if __name__ == "__main__":
         help="Whether to NOT use a GPU accelerator for training.",
     )
 
-    parser.add_argument(
-        "--checkpoint", type=str, help="The checkpoint from which to load a model."
-    )
+    parser.add_argument("--checkpoint", type=str, help="The checkpoint from which to load a model.")
 
     # Model arguments
     POSClassifier.add_model_specific_args(parser)
