@@ -66,3 +66,11 @@ class POSClassifier(BaseClassifier):
         self.tag_centroids = {
             k: torch.mean(torch.vstack(v), dim=0) for k, v in self.tag_centroids.items()
         }
+
+    def on_save_checkpoint(self, ckpt):
+        super().on_save_checkpoint(ckpt)
+        ckpt["tag_centroids"] = self.tag_centroids
+
+    def on_load_checkpoint(self, ckpt):
+        super().on_load_checkpoint(ckpt)
+        self.tag_centroids = ckpt["tag_centroids"]
