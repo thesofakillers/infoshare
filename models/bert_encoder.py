@@ -86,6 +86,8 @@ class BERTEncoderForWordClassification(Module):
             return torch.mean(x, dim=0)
         elif self.aggregation == "max":
             return torch.max(x, dim=0)[0]
+        elif self.aggregation == "first":
+            return x[0]
         else:
             raise ValueError(f"Unknown aggregation function: {self.aggregation}")
 
