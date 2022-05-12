@@ -17,7 +17,7 @@ def test(args: Namespace):
     seed_everything(args.seed, workers=True)
 
     # Load the hyperparameters from checkpoint
-    current_device = 'cpu' if args.no_gpu or (not torch.cuda.is_available()) else 'gpu'
+    current_device = "cpu" if args.no_gpu or (not torch.cuda.is_available()) else "cuda"
     hparams = torch.load(args.checkpoint, map_location=current_device)["hyper_parameters"]
     hparams = Namespace(**hparams)
 
@@ -68,11 +68,16 @@ def test(args: Namespace):
 
     # Configure the logger
     logger = TensorBoardLogger(
-        save_dir=os.path.join(args.log_dir, hparams.encoder_name, hparams.treebank_name, hparams.task),
+        save_dir=os.path.join(
+            args.log_dir,
+            hparams.encoder_name,
+            hparams.treebank_name,
+            hparams.task,
+        ),
         name="evaluation",
         default_hp_metric=False,
     )
-    
+
     # Configure GPU usage
     use_gpu = 0 if args.no_gpu or (not torch.cuda.is_available()) else 1
 
@@ -101,7 +106,7 @@ if __name__ == "__main__":
         required=True,
         help="The checkpoint from which to load a model.",
     )
-    
+
     parser.add_argument(
         "--enable_progress_bar",
         action="store_true",
@@ -114,7 +119,7 @@ if __name__ == "__main__":
         type=str,
         help="The target class to (cross-)neutralize all embeddings with.",
     )
-    
+
     parser.add_argument(
         "--no_gpu",
         action="store_true",
@@ -142,14 +147,13 @@ if __name__ == "__main__":
         default=64,
         help="The batch size used by the dataloaders.",
     )
-    
+
     parser.add_argument(
         "--data_dir",
         type=str,
         default="./data",
         help="The data directory to use for the datasets.",
     )
-
 
     parser.add_argument(
         "--num_workers",
