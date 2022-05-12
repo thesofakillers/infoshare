@@ -15,7 +15,7 @@ class DEPClassifier(BaseClassifier):
             nn.Linear(n_hidden, n_classes),
         )
 
-    def forward(self, encoded_input: BatchEncoding, heads: List[Tensor]) -> Tensor:
+    def forward(self, encoded_input: BatchEncoding, heads: List[Tensor]) -> Tuple[Tensor, Tensor]:
         embeddings = self.bert(encoded_input)
 
         classifier_input = []
@@ -38,7 +38,7 @@ class DEPClassifier(BaseClassifier):
         output = self.classifier(classifier_input)
         return embeddings, output
 
-    def process_batch(self, batch: Tuple) -> Tuple[Tensor, Tensor]:
+    def process_batch(self, batch: Tuple) -> Tuple[Tensor, Tensor, Tensor]:
         encoded_inputs, heads, targets = batch
         embeddings, logits = self(encoded_inputs, heads)
         return embeddings, logits, targets
