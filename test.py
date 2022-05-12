@@ -77,7 +77,11 @@ def test(args: Namespace):
         args,
         logger=logger,
         gpus=(0 if args.no_gpu else 1),
+        max_epochs=1,  # just to supress a warning from PL
     )
+
+    if args.neutralizer:
+        model.set_neutralizer(args.neutralizer)
 
     # test the model
     trainer.test(model, ud)
@@ -87,6 +91,19 @@ if __name__ == "__main__":
     parser = ArgumentParser()
 
     # Trainer arguments
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        required=True,
+        help="The checkpoint from which to load a model.",
+    )
+
+    parser.add_argument(
+        "--neutralizer",
+        type=str,
+        help="The target class to (cross-)neutralize all embeddings with.",
+    )
+
     parser.add_argument(
         "--seed",
         type=int,
@@ -105,13 +122,6 @@ if __name__ == "__main__":
         "--no_gpu",
         action="store_true",
         help="Whether to NOT use a GPU accelerator for training.",
-    )
-
-    parser.add_argument(
-        "--checkpoint",
-        type=str,
-        required=True,
-        help="The checkpoint from which to load a model.",
     )
 
     parser.add_argument(
