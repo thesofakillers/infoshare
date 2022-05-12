@@ -67,8 +67,8 @@ def test(args: Namespace):
 
     # configure logger
     logger = TensorBoardLogger(
-        args.log_dir,
-        name=hparams.encoder_name,
+        save_dir=os.path.join(args.log_dir, args.encoder_name, args.treebank_name, args.task),
+        name="evaluation",
         default_hp_metric=False,
     )
 

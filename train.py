@@ -13,6 +13,10 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 logging.set_verbosity_error()
 
 
+def get_experiment_name(args: Namespace) -> str:
+    return f"agg={args.aggregation}_probe={args.probe_layer}"
+
+
 def train(args: Namespace):
     seed_everything(args.seed, workers=True)
 
@@ -60,7 +64,11 @@ def train(args: Namespace):
     model.set_encoder(bert)
 
     # configure logger
-    logger = TensorBoardLogger(args.log_dir, name=args.encoder_name, default_hp_metric=False)
+    logger = TensorBoardLogger(
+        save_dir=os.path.join(args.log_dir, args.encoder_name, args.treebank_name, args.task),
+        name=get_experiment_name(args),
+        default_hp_metric=False,
+    )
 
     # configure callbacks
     callback_cfg = {"monitor": "val_acc", "mode": "max"}
