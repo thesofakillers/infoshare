@@ -64,7 +64,7 @@ def test(args: Namespace):
     )
 
     ud.prepare_data()
-    ud.setup("test")
+    ud.setup()
 
     # Configure the logger
     logger = TensorBoardLogger(
