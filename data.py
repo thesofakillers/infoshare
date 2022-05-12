@@ -131,5 +131,5 @@ class UDDataModule(LightningDataModule):
             self.ud_debug,
             batch_size=self.hparams.batch_size,
             num_workers=self.hparams.num_workers,
-            collate_fn=self.collate_fn,
+            collate_fn=self.get_collate_fn(),
         )
