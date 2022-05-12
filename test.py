@@ -110,7 +110,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--enable_progress_bar",
         action="store_true",
-        default=True,  # TODO: remove this before running on lisa
         help="Whether to enable the progress bar (NOT recommended when logging to file).",
     )
 

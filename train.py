@@ -75,7 +75,7 @@ def train(args: Namespace):
     callback_cfg = {"monitor": "val_acc", "mode": "max"}
     es_cb = EarlyStopping(**callback_cfg)  # TODO: maybe setup other early stopping parameters
     ckpt_cb = ModelCheckpoint(save_top_k=1, **callback_cfg)
-    
+
     # Configure GPU usage
     use_gpu = 0 if args.no_gpu or (not torch.cuda.is_available()) else 1
 
@@ -100,14 +100,13 @@ if __name__ == "__main__":
 
     # Trainer arguments
     parser.add_argument("--checkpoint", type=str, help="The checkpoint from which to load a model.")
-    
+
     parser.add_argument(
         "--enable_progress_bar",
         action="store_true",
-        default=True,  # TODO: remove this before running on lisa
         help="Whether to enable the progress bar (NOT recommended when logging to file).",
     )
-    
+
     parser.add_argument(
         "--log_dir",
         type=str,
@@ -127,7 +126,7 @@ if __name__ == "__main__":
         action="store_true",
         help="Whether to NOT use a GPU accelerator for training.",
     )
-    
+
     parser.add_argument("--seed", type=int, default=420, help="The seed to use for the RNG.")
 
     # Encoder arguments
@@ -135,7 +134,7 @@ if __name__ == "__main__":
 
     # Classifier arguments
     BaseClassifier.add_model_specific_args(parser)
-        
+
     # Dataset arguments
     UDDataModule.add_model_specific_args(parser)
 
