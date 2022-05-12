@@ -18,6 +18,7 @@ def test(args: Namespace):
 
     # load hparams from checkpoint
     hparams = torch.load(args.checkpoint)["hyper_parameters"]
+    hparams = Namespace(**hparams)
 
     # load tokenizer
     tokenizer = AutoTokenizer.from_pretrained(
