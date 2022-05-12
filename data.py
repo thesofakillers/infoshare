@@ -20,7 +20,7 @@ class UDDataModule(LightningDataModule):
             default=64,
             help="The batch size used by the dataloaders.",
         )
-        
+
         parser.add_argument(
             "--data_dir",
             type=str,
@@ -34,7 +34,7 @@ class UDDataModule(LightningDataModule):
             default=4,
             help="The number of subprocesses used by the dataloaders.",
         )
-        
+
         parser.add_argument(
             "--task",
             type=str,
@@ -49,9 +49,9 @@ class UDDataModule(LightningDataModule):
             default="en_gum",
             help="The name of the treebank to use as the dataset.",
         )
-        
+
         return parent_parser
-    
+
     def __init__(
         self,
         task: str,

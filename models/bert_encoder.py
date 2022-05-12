@@ -96,18 +96,18 @@ class BERTEncoderForWordClassification(Module):
 
     @staticmethod
     def _get_tokens_per_word(word_ids: List[int]) -> Tuple[List[int], Tuple[int, int]]:
-        """Takes a list with the word ids for each (sub-word) token in a sequence and 
+        """Takes a list with the word ids for each (sub-word) token in a sequence and
         returns the number of tokens each word has as well as the start and end token
         of the sequence without special / padding tokens.
-        
+
         Arguments:
             word_ids(List[int]): The word ids for each (sub-word) token in a sequence.
-            
+
         Returns:
-            Tuple[List[int], Tuple[int, int]]: The number of tokens each word has 
+            Tuple[List[int], Tuple[int, int]]: The number of tokens each word has
             (first part of the tuple) as well as the actual start and end token of the
             sequence (second part of the tuple).
-            
+
         For example, if the sequence length is 10 and the word_ids are:
         [None, 0, 0, 0, 1, 2, 2, None, None, None]
         Then the tuple returned is:
