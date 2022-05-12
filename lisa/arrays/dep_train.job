@@ -8,7 +8,7 @@
 #SBATCH --time=00:30:00
 #SBATCH --mem=32000M
 #SBATCH --array=1-15%2
-#SBATCH --output=lisa/outputs/POS_train_%A_%a.out
+#SBATCH --output=lisa/outputs/DEP_train_%A_%a.out
 
 module purge
 module load 2021

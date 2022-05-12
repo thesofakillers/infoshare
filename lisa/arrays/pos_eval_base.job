@@ -16,6 +16,6 @@ module load Anaconda3/2021.05
 
 source activate bert-infoshare
 
-CHECKPOINTS_FILE=./lisa/arrays/all_checkpoints.txt
+CHECKPOINTS_FILE=./lisa/arrays/all_checkpoints_pos.txt
 srun python -u test.py --num_workers 3 --checkpoint \
-                        $(head -$SLURM_ARRAY_TASK_ID CHECKPOINTS_FILE | tail -1)
+                        $(head -$SLURM_ARRAY_TASK_ID $CHECKPOINTS_FILE | tail -1)
