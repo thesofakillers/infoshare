@@ -18,6 +18,7 @@ datasets = "^2.1.0"
 jupyter = "^1.0.0"
 torch = "^1.11.0"
 pytorch-lightning = ">=1.6.3"
+matplotlib = "^3.5.2"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"
