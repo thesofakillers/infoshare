@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 from datasets import load_dataset, load_from_disk
 from pytorch_lightning import LightningDataModule
 from torch import LongTensor
@@ -9,6 +10,48 @@ import os
 
 
 class UDDataModule(LightningDataModule):
+    @staticmethod
+    def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
+        parser = parent_parser.add_argument_group("Dataset")
+
+        parser.add_argument(
+            "--batch_size",
+            type=int,
+            default=64,
+            help="The batch size used by the dataloaders.",
+        )
+        
+        parser.add_argument(
+            "--data_dir",
+            type=str,
+            default="./data",
+            help="The data directory to load/store the datasets.",
+        )
+
+        parser.add_argument(
+            "--num_workers",
+            type=int,
+            default=4,
+            help="The number of subprocesses used by the dataloaders.",
+        )
+        
+        parser.add_argument(
+            "--task",
+            type=str,
+            default="POS",
+            choices=["DEP", "POS"],
+            help="The task to train the probing classifier on.",
+        )
+
+        parser.add_argument(
+            "--treebank_name",
+            type=str,
+            default="en_gum",
+            help="The name of the treebank to use as the dataset.",
+        )
+        
+        return parent_parser
+    
     def __init__(
         self,
         task: str,

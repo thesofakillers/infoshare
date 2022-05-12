@@ -16,11 +16,12 @@ logging.set_verbosity_error()
 def test(args: Namespace):
     seed_everything(args.seed, workers=True)
 
-    # load hparams from checkpoint
-    hparams = torch.load(args.checkpoint)["hyper_parameters"]
+    # Load the hyperparameters from checkpoint
+    current_device = 'cpu' if args.no_gpu or (not torch.cuda.is_available()) else 'gpu'
+    hparams = torch.load(args.checkpoint, map_location=current_device)["hyper_parameters"]
     hparams = Namespace(**hparams)
 
-    # load tokenizer
+    # Load the tokenizer
     tokenizer = AutoTokenizer.from_pretrained(
         hparams.encoder_name,
         add_prefix_space=True,
@@ -32,7 +33,7 @@ def test(args: Namespace):
         padding=True,
     )
 
-    # load model class constructor
+    # Load the model class constructor
     if hparams.task == "DEP":
         model_class = DEPClassifier
     elif hparams.task == "POS":
@@ -40,19 +41,19 @@ def test(args: Namespace):
     else:
         raise Exception(f"Unsupported task: {hparams.task}")
 
-    # load BERT encoder
+    # Load the BERT encoder
     bert = BERTEncoderForWordClassification(
         encoder_name=hparams.encoder_name,
         aggregation=hparams.aggregation,
         probe_layer=hparams.probe_layer,
     )
 
-    # load PL module
+    # Load the PL module
     print(f"Loading from checkpoint: {args.checkpoint}")
-    model = model_class.load_from_checkpoint(args.checkpoint)
+    model = model_class.load_from_checkpoint(args.checkpoint, num_workers=args.num_workers)
     model.set_encoder(bert)
 
-    # load PL datamodule
+    # Load PL datamodule
     ud = UDDataModule(
         hparams.task,
         hparams.treebank_name,
@@ -65,25 +66,28 @@ def test(args: Namespace):
     ud.prepare_data()
     ud.setup("test")
 
-    # configure logger
+    # Configure the logger
     logger = TensorBoardLogger(
-        save_dir=os.path.join(args.log_dir, args.encoder_name, args.treebank_name, args.task),
+        save_dir=os.path.join(args.log_dir, hparams.encoder_name, hparams.treebank_name, hparams.task),
         name="evaluation",
         default_hp_metric=False,
     )
+    
+    # Configure GPU usage
+    use_gpu = 0 if args.no_gpu or (not torch.cuda.is_available()) else 1
 
-    # set up trainer
+    # Set up the trainer
     trainer = Trainer.from_argparse_args(
         args,
         logger=logger,
-        gpus=(0 if args.no_gpu else 1),
+        gpus=use_gpu,
         max_epochs=1,  # just to supress a warning from PL
     )
 
     if args.neutralizer:
         model.set_neutralizer(args.neutralizer)
 
-    # test the model
+    # Test the model
     trainer.test(model, ud)
 
 
@@ -97,11 +101,24 @@ if __name__ == "__main__":
         required=True,
         help="The checkpoint from which to load a model.",
     )
+    
+    parser.add_argument(
+        "--enable_progress_bar",
+        action="store_true",
+        default=True,  # TODO: remove this before running on lisa
+        help="Whether to enable the progress bar (NOT recommended when logging to file).",
+    )
 
     parser.add_argument(
         "--neutralizer",
         type=str,
         help="The target class to (cross-)neutralize all embeddings with.",
+    )
+    
+    parser.add_argument(
+        "--no_gpu",
+        action="store_true",
+        help="Whether to NOT use a GPU accelerator for training.",
     )
 
     parser.add_argument(
@@ -112,33 +129,20 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--enable_progress_bar",
-        action="store_true",
-        default=True,  # TODO: remove this before running on lisa
-        help="Whether to enable the progress bar (NOT recommended when logging to file).",
+        "--log_dir",
+        type=str,
+        default="./lightning_logs",
+        help="The logging directory for Pytorch Lightning.",
     )
 
-    parser.add_argument(
-        "--no_gpu",
-        action="store_true",
-        help="Whether to NOT use a GPU accelerator for training.",
-    )
-
+    # Dataset arguments
     parser.add_argument(
         "--batch_size",
         type=int,
         default=64,
         help="The batch size used by the dataloaders.",
     )
-
-    parser.add_argument(
-        "--num_workers",
-        type=int,
-        default=4,
-        help="The number of subprocesses used by the dataloaders.",
-    )
-
-    # Directory arguments
+    
     parser.add_argument(
         "--data_dir",
         type=str,
@@ -146,11 +150,12 @@ if __name__ == "__main__":
         help="The data directory to use for the datasets.",
     )
 
+
     parser.add_argument(
-        "--log_dir",
-        type=str,
-        default="./lightning_logs",
-        help="The logging directory for Pytorch Lightning.",
+        "--num_workers",
+        type=int,
+        default=4,
+        help="The number of subprocesses used by the dataloaders.",
     )
 
     args = parser.parse_args()
