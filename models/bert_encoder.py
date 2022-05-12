@@ -73,7 +73,7 @@ class BERTEncoderForWordClassification(Module):
             sequence_output_per_word = list(map(self.aggregation_fn, sequence_output_per_word))
             sequence_output_per_word = torch.vstack(sequence_output_per_word)
 
-            # Append sequence output to batch output
+            # Append sequence output to batch outputgit
             batch_output_per_word += [sequence_output_per_word]
 
         # Pad sequence representations
@@ -94,7 +94,27 @@ class BERTEncoderForWordClassification(Module):
 
     @staticmethod
     def _get_tokens_per_word(word_ids: List[int]) -> Tuple[List[int], Tuple[int, int]]:
-        # TODO @tolis: documentation for `diff`
+        """Takes a list with the word ids for each (sub-word) token in a sequence and 
+        returns the number of tokens each word has as well as the start and end token
+        of the sequence without special / padding tokens.
+        
+        Arguments:
+            word_ids(List[int]): The word ids for each (sub-word) token in a sequence.
+            
+        Returns:
+            Tuple[List[int], Tuple[int, int]]: The number of tokens each word has 
+            (first part of the tuple) as well as the actual start and end token of the
+            sequence (second part of the tuple).
+            
+        For example, if the sequence length is 10 and the word_ids are:
+        [None, 0, 0, 0, 1, 2, 2, None, None, None]
+        Then the tuple returned is:
+        ([3, 1, 2], (1, 7))
+        because the first word (with id 0) has 3 tokens, the second word (with id 1)
+        has 1 token and the third word (with id 2) has 2 tokens. The actual sequence
+        start at the 1st token and finishes before the 7th token, since None word ids
+        correspond to special or padding tokens.
+        """
         diff = lambda x: np.diff(np.concatenate([[0], x, [np.max(x) + 1]]))
 
         # Get sequence boundaries (excluding special tokens)
