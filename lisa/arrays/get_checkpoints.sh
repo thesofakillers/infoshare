@@ -1,6 +1,8 @@
-if [ $# -eq 0 ]; then
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
     echo "Please specify the task to collect the checkpoints for!"
-    echo "Example: sh get_checkpoints.sh POS"
+    echo "Example: bash get_checkpoints.sh POS"
     exit 1
 fi
 

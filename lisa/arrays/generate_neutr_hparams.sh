@@ -1,6 +1,8 @@
-if [ $# -eq 0 ]; then
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
     echo "Please specify the task to generate the neutralizer hyper-parameters for!"
-    echo "Example: sh generate_neutr_hparams.sh POS"
+    echo "Example: bash generate_neutr_hparams.sh POS"
     exit 1
 fi
 
