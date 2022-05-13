@@ -4,8 +4,14 @@ In this directory you can find the scripts needed to run experiments on the Lisa
 
 ⚠️ **Attention:**
 When scheduling a job with [sbatch](https://slurm.schedmd.com/sbatch.html), always make sure to be in the base
-directory of the project (which should usually be `bert-infoshare`)! Otherwise, the jobs will fail as the relative
+directory of the project (which is normally `bert-infoshare`)! Otherwise, the jobs will fail as the relative
 paths for the log files will be misaligned.
+
+⚠️ **Attention:**
+Job array scripts have a unique SLURM argument, namely `--array=1-N%2` which means to read lines 1-N from the
+associated hyper-parameters file and to schedule 2 jobs at a time. As such, when that file is changed (or generated
+through a bash script), the corresponding line in the job script needs to be updated. If you forget to do this, then
+you might not run the amount of experiments that you'd anticipate!
 
 ## Job: Grid search for training
 To perform grid search for training, after modifying the file [hparams.txt](hparams.txt) accordingly, you can run

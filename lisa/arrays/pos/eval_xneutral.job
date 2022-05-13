@@ -5,9 +5,9 @@
 #SBATCH --job-name=POS_Eval_XNeutral
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
-#SBATCH --time=00:30:00
+#SBATCH --time=00:10:00
 #SBATCH --mem=32000M
-#SBATCH --array=1-15%2
+#SBATCH --array=1-270%2
 #SBATCH --output=lisa/outputs/eval_logs/pos/xneutral_%A_%a.out
 
 module purge
