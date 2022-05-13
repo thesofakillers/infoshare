@@ -71,6 +71,7 @@ def test(args: Namespace):
     ud.setup()
 
     # Configure the logger
+    v_postfix = f"_{args.neutralizer}" if args.neutralizer else ""
     logger = TensorBoardLogger(
         save_dir=os.path.join(
             args.log_dir,
@@ -79,7 +80,7 @@ def test(args: Namespace):
             hparams.task,
         ),
         name=get_experiment_name(hparams),
-        version="evaluation",
+        version=f"evaluation{v_postfix}",
         default_hp_metric=False,
     )
 
