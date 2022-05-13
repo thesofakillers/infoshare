@@ -103,16 +103,16 @@ class UDDataModule(LightningDataModule):
                 # Aggregate all classes from the train dataset
                 all_classes = set().union(*self.ud_train["deprel"])
                 # Remove classes that have a language-specific modifier
-                main_classes = [drel for drel in all_classes if ":" not in drel]
+                main_classes = sorted([drel for drel in all_classes if ":" not in drel])
                 # Create a mapping from (main) class names to unique ids
                 self.cname_to_id = {cname: i for i, cname in enumerate(main_classes)}
-                self.id_to_cname = {i: cname for cname, i in self.cname_to_id.items()}
                 # Add a mapping from the language-specific classes to the broader ones
                 for spec_class in all_classes.difference(main_classes):
                     col_idx = spec_class.index(":")
                     main_class = spec_class[:col_idx]
                     self.cname_to_id[spec_class] = self.cname_to_id[main_class]
 
+                self.id_to_cname = main_classes
                 self.num_classes = len(main_classes)
 
         if stage == "test" or stage is None:
