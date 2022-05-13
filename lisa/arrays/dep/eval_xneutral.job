@@ -2,13 +2,13 @@
 
 #SBATCH --partition=gpu_shared_course
 #SBATCH --gres=gpu:1
-#SBATCH --job-name=POS_Eval_XNeutral
+#SBATCH --job-name=DEP_Eval_XNeutral
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
 #SBATCH --time=00:30:00
 #SBATCH --mem=32000M
 #SBATCH --array=1-15%2
-#SBATCH --output=lisa/outputs/POS_eval_xneutral_%A_%a.out
+#SBATCH --output=lisa/outputs/eval_logs/dep/xneutral_%A_%a.out
 
 module purge
 module load 2021
@@ -16,6 +16,6 @@ module load Anaconda3/2021.05
 
 source activate bert-infoshare
 
-NEUTR_HPARAMS_FILE=./lisa/arrays/pos_neutr_hparams.txt
+NEUTR_HPARAMS_FILE=./lisa/arrays/dep/neutr_hparams.txt
 srun python -u test.py --num_workers 3 \
                         $(head -$SLURM_ARRAY_TASK_ID $NEUTR_HPARAMS_FILE | tail -1)

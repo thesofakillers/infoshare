@@ -147,5 +147,5 @@ lightning_logs/
 *.ckpt
 
 # Lisa array generated files
-lisa/arrays/all_checkpoints*.txt
-lisa/arrays/*_neutr_hparams.txt
+lisa/arrays/*/all_checkpoints.txt
+lisa/arrays/*/neutr_hparams.txt
