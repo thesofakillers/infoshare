@@ -8,7 +8,7 @@ from torch import nn, Tensor
 from torch.nn.utils.rnn import pad_sequence
 from torch.optim import AdamW, Optimizer
 from transformers import AutoTokenizer
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -33,6 +33,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         n_classes: int,
         class_map: List[str],
         lr: float = 1e-3,
+        ignore_idx: Optional[int] = None,
         **kwargs,
     ):
         super().__init__()
@@ -91,6 +92,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
                     target=targets[i],
                     average=average,
                     num_classes=logits.shape[-1],
+                    ignore_index=self.hparams.ignore_idx,
                 )
                 for i in range(len(targets))
             ]
@@ -122,8 +124,9 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         batch_embs, batch_logits, targets = self.process_batch(batch)
         batch_size = len(batch_logits)
 
-        # Pad target values to use with CE
+        # Pad & mask target values to use with CE
         targets_padded = pad_sequence(targets, batch_first=True, padding_value=-1)
+        targets_padded[targets_padded == self.hparams.ignore_idx] = -1
 
         # Calculate & log CrossEntropy loss
         # NOTE: CE expects input shape (N, C, S) while logits' shape is (N, S, C)
