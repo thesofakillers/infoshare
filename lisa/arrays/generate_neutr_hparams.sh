@@ -4,13 +4,26 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
-WRITE_FILE="${1,,}/neutr_hparams.txt"
-truncate -s 0 "$WRITE_FILE" # clear the file
+(
+  CURRENT_DIRECTORY=$(basename "$(pwd)")
+  # Script should be called in the 'arrays' directory
+  if [[ "$CURRENT_DIRECTORY" == "arrays" ]]; then
+      true # do nothing
+  elif [[ "$CURRENT_DIRECTORY" == "lisa" ]]; then
+      cd arrays
+  else
+      # assume we are in the base directory
+      cd lisa/arrays
+  fi
 
-while read -r CHECKPOINT; do
-    while read -r NEUTRALIZER; do
-        echo "--checkpoint ${CHECKPOINT} --neutralizer ${NEUTRALIZER}" >> "$WRITE_FILE"
-    done <<< "$(cat "${1,,}/neutralizers.txt")"
-done <<< "$(cat "${1,,}/all_checkpoints.txt")"
+  WRITE_FILE="${1,,}/neutr_hparams.txt"
+  truncate -s 0 "$WRITE_FILE" # clear the file
 
-echo "Wrote $(wc -l < "$WRITE_FILE") lines to $WRITE_FILE"
+  while read -r CHECKPOINT; do
+      while read -r NEUTRALIZER; do
+          echo "--checkpoint ${CHECKPOINT} --neutralizer ${NEUTRALIZER}" >> "$WRITE_FILE"
+      done <<< "$(cat "${1,,}/neutralizers.txt")"
+  done <<< "$(cat "${1,,}/all_checkpoints.txt")"
+
+  echo "Wrote $(wc -l < "$WRITE_FILE") lines to $WRITE_FILE"
+)
