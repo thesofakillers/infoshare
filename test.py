@@ -13,6 +13,10 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 logging.set_verbosity_error()
 
 
+def get_experiment_name(hparams: Namespace) -> str:
+    return f"agg={hparams.aggregation}_probe={hparams.probe_layer}"
+
+
 def test(args: Namespace):
     seed_everything(args.seed, workers=True)
 
@@ -74,7 +78,8 @@ def test(args: Namespace):
             hparams.treebank_name,
             hparams.task,
         ),
-        name="evaluation",
+        name=get_experiment_name(hparams),
+        version="evaluation",
         default_hp_metric=False,
     )
 
