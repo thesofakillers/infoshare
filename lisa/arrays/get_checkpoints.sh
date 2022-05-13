@@ -7,9 +7,12 @@ if [ $# -ne 1 ]; then
 fi
 
 (
-  if [[ $(basename "$(pwd)") == "arrays" ]]; then
-      # Script should be called in the base directory
+  CURRENT_DIRECTORY=$(basename "$(pwd)")
+  # Script should be called in the base directory
+  if [[ "$CURRENT_DIRECTORY" == "arrays" ]]; then
       cd ../..
+  elif [[ "$CURRENT_DIRECTORY" == "lisa" ]]; then
+      cd ..
   fi
 
   CHECKPOINTS=$(find . -type f -name "*.ckpt" | grep "$1" | sort -V)
