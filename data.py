@@ -91,7 +91,7 @@ class UDDataModule(LightningDataModule):
         # affected by the word order as the "head" value is a token index.
         if self.hparams.task == "POS":
             target_class = "upos"
-            target_value = dataset.info.features["upos"].names.index("_")
+            target_value = dataset["train"].info.features["upos"].feature.names.index("_")
         else:
             target_class = "deprel"
             target_value = "_"
