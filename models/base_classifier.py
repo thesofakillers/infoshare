@@ -173,7 +173,6 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
             # perform the testing on neutralized embeddings
             neutral_embs = self.subtract_centroid(embs)
             processed_batch["embeddings"] = neutral_embs
-            neutral_embs = self.intercept_embeddings(**processed_batch)
             neutral_logits = self.classifier(neutral_embs)
             self.log_accuracy(
                 neutral_logits,
