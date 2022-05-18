@@ -77,14 +77,36 @@ class UDDataModule(LightningDataModule):
         print("Downloading UniversalDependencies data from HuggingFace")
         dataset = load_dataset("universal_dependencies", self.hparams.treebank_name)
 
-        # Remove columns that are not relevant to our task
-        columns = dataset["train"].column_names
-        columns.remove("tokens")
+        # Only keep columns that are relevant to our task
+        keep_columns = ["tokens"]
         if self.hparams.task == "POS":
-            columns.remove("upos")
+            keep_columns += ["upos"]
         elif self.hparams.task == "DEP":
-            columns.remove("head")
-            columns.remove("deprel")
+            keep_columns += ["head", "deprel"]
+
+        # Remove tokens that correspond to the underscore class.
+        # The UniversalDependencies dataset essentially splits compound words into their parts
+        # but keeps the original token in the list of tokens as well. This will cause problems
+        # when we try to parse the sentences, especially for dependency relations which is
+        # affected by the word order as the "head" value is a token index.
+        if self.hparams.task == "POS":
+            target_class = "upos"
+            target_value = dataset.info.features["upos"].names.index("_")
+        else:
+            target_class = "deprel"
+            target_value = "_"
+
+        def remove_underscores(x: Dict[str, list]) -> Dict[str, list]:
+            keep_indices = [
+                idx for idx, value in enumerate(x[target_class]) if value != target_value
+            ]
+            for column in keep_columns:
+                x[column] = [x[column][idx] for idx in keep_indices]
+
+            return x
+
+        drop_columns = set(dataset["train"].column_names).difference(keep_columns)
+        dataset = dataset.map(remove_underscores, remove_columns=list(drop_columns))
 
         print("Saving to disk")
         dataset.save_to_disk(self.dataset_dir)
@@ -101,7 +123,8 @@ class UDDataModule(LightningDataModule):
                 self.num_classes = self.ud_train.info.features["upos"].feature.num_classes
             elif self.hparams.task == "DEP":
                 # Aggregate all classes from the train dataset
-                all_classes = set().union(*self.ud_train["deprel"])
+                # We include "_" to comply with the number of classes in the dataset spec
+                all_classes = set("_").union(*self.ud_train["deprel"])
                 # Remove classes that have a language-specific modifier
                 main_classes = sorted([drel for drel in all_classes if ":" not in drel])
                 # Create a mapping from (main) class names to unique ids
@@ -117,6 +140,7 @@ class UDDataModule(LightningDataModule):
 
         if stage == "test" or stage is None:
             self.ud_test = dataset["test"]
+
         if stage == "debug" or stage is None:
             self.ud_debug = dataset["validation"].select(list(range(50)))
 
