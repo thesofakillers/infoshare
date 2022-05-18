@@ -118,6 +118,13 @@ if __name__ == "__main__":
         default="./lightning_logs",
         help="The logging directory for Pytorch Lightning.",
     )
+    
+    parser.add_argument(
+        "--log_every_n_steps",
+        type=int,
+        default=50,
+        help="The number of steps (batches) between logging to tensorboard.",
+    )
 
     parser.add_argument(
         "--max_epochs",
