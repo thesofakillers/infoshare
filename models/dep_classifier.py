@@ -58,9 +58,9 @@ class DEPClassifier(BaseClassifier):
 
     def forward(self, encoded_input: BatchEncoding, heads: List[Tensor]) -> Tuple[Tensor, Tensor]:
         embeddings = self.bert(encoded_input)
-        classifier_input = self.intercept_embeddings(embeddings=embeddings, heads=heads)
-        output = self.classifier(classifier_input)
-        return embeddings, output
+        concatenated_embs = self.intercept_embeddings(embeddings=embeddings, heads=heads)
+        output = self.classifier(concatenated_embs)
+        return concatenated_embs, output
 
     def process_batch(self, batch: Tuple) -> Dict[str, Tensor]:
         encoded_inputs, heads, targets = batch
