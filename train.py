@@ -1,7 +1,7 @@
 from argparse import ArgumentParser, Namespace
 from data import UDDataModule
 from functools import partial
-from models import *
+import models
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -40,14 +40,14 @@ def train(args: Namespace):
 
     # Load the model class constructor
     if args.task == "DEP":
-        model_class = DEPClassifier
+        model_class = models.DEPClassifier
     elif args.task == "POS":
-        model_class = POSClassifier
+        model_class = models.POSClassifier
     else:
         raise Exception(f"Unsupported task: {args.task}")
 
     # Load the BERT encoder
-    bert = BERTEncoderForWordClassification(**vars(args))
+    bert = models.BERTEncoderForWordClassification(**vars(args))
 
     # Load the PL module
     if args.checkpoint:
@@ -118,7 +118,7 @@ if __name__ == "__main__":
         default="./lightning_logs",
         help="The logging directory for Pytorch Lightning.",
     )
-    
+
     parser.add_argument(
         "--log_every_n_steps",
         type=int,
@@ -142,10 +142,11 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=420, help="The seed to use for the RNG.")
 
     # Encoder arguments
-    BERTEncoderForWordClassification.add_model_specific_args(parser)
+    models.BERTEncoderForWordClassification.add_model_specific_args(parser)
 
     # Classifier arguments
-    BaseClassifier.add_model_specific_args(parser)
+    models.BaseClassifier.add_model_specific_args(parser)
+    models.DEPClassifier.add_model_specific_args(parser)
 
     # Dataset arguments
     UDDataModule.add_model_specific_args(parser)

@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 from .base_classifier import BaseClassifier
 from torch import nn, Tensor
 from torch.nn.utils.rnn import pad_sequence
@@ -8,9 +9,25 @@ import torch
 
 
 class DEPClassifier(BaseClassifier):
+    @staticmethod
+    def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
+        parser = parent_parser.add_argument_group("DEP Classifier")
+        parser.add_argument(
+            "--concat_mode",
+            type=str,
+            default="abs",
+            choices=["ABS", "MEAN", "ONLY"],
+            help="How to concatenated child and parent.",
+        )
+        return parent_parser
+
     def get_classifier_head(self, n_hidden: int, n_classes: int) -> nn.Module:
+
+        input_multiplier = 2
+        if self.hparams.concat_mode in {"ABS", "MEAN"}:
+            input_multiplier += 2
         return nn.Sequential(
-            nn.Linear(4 * n_hidden, n_hidden),
+            nn.Linear(input_multiplier * n_hidden, n_hidden),
             nn.Tanh(),
             nn.Linear(n_hidden, n_classes),
         )
@@ -24,16 +41,17 @@ class DEPClassifier(BaseClassifier):
         for (seq, head) in zip(embeddings, heads):
             seq_nopad = seq[: len(head)]
             parents = seq_nopad[head - 1]
-            classifier_input += [
-                torch.hstack(
-                    [
-                        seq_nopad,
-                        parents,
-                        (seq_nopad - parents).abs(),
-                        (seq_nopad * parents),
-                    ]
-                )
-            ]
+            # handles base case where self.hparams.concat_mode == 'ONLY'
+            tensors_to_stack = [seq_nopad, parents]
+            # in ABS and MEAN cases, we concatenate additional representations
+            if self.hparams.concat_mode == "ABS":
+                tensors_to_stack += [(seq_nopad - parents).abs(), (seq_nopad * parents)]
+            elif self.hparams.concat_mode == "MEAN":
+                tensors_to_stack += [
+                    torch.mean(torch.stack([seq_nopad, parents]), dim=0),
+                    (seq_nopad * parents),
+                ]
+            classifier_input += [torch.hstack(tensors_to_stack)]
 
         classifier_input = pad_sequence(classifier_input, batch_first=True)
         return classifier_input
