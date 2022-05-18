@@ -15,7 +15,7 @@ logging.set_verbosity_error()
 
 
 def get_experiment_name(args: Namespace) -> str:
-    return f"agg={args.aggregation}_probe={args.probe_layer}"
+    return f"agg={args.aggregation}_probe={args.probe_layer}_concat-mode={args.concat_mode}"
 
 
 def train(args: Namespace):
