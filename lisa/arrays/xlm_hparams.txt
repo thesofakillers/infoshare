@@ -28,18 +28,18 @@
 --aggregation mean --probe_layer 6 --treebank_name it_vit
 --aggregation mean --probe_layer 9 --treebank_name it_vit
 --aggregation mean --probe_layer 12 --treebank_name it_vit
---aggregation first --probe_layer 1 --treebank_name el_gdt
---aggregation first --probe_layer 3 --treebank_name en_gdt
---aggregation first --probe_layer 6 --treebank_name en_gdt
---aggregation first --probe_layer 9 --treebank_name en_gdt
---aggregation first --probe_layer 1 --treebank_name en_gdt
---aggregation max --probe_layer 1 --treebank_name en_gdt
---aggregation max --probe_layer 3 --treebank_name en_gdt
---aggregation max --probe_layer 6 --treebank_name en_gdt
---aggregation max --probe_layer 9 --treebank_name en_gdt
---aggregation max --probe_layer 12 --treebank_name en_gdt
---aggregation mean --probe_layer 1 --treebank_name en_gdt
---aggregation mean --probe_layer 3 --treebank_name en_gdt
---aggregation mean --probe_layer 6 --treebank_name en_gdt
---aggregation mean --probe_layer 9 --treebank_name en_gdt
---aggregation mean --probe_layer 12 --treebank_name en_gdt
+--aggregation first --probe_layer 1 --treebank_name el_gdt --log_every_n_steps 8
+--aggregation first --probe_layer 3 --treebank_name el_gdt --log_every_n_steps 8
+--aggregation first --probe_layer 6 --treebank_name el_gdt --log_every_n_steps 8
+--aggregation first --probe_layer 9 --treebank_name el_gdt --log_every_n_steps 8
+--aggregation first --probe_layer 1 --treebank_name el_gdt --log_every_n_steps 8
+--aggregation max --probe_layer 1 --treebank_name el_gdt --log_every_n_steps 8
+--aggregation max --probe_layer 3 --treebank_name el_gdt --log_every_n_steps 8
+--aggregation max --probe_layer 6 --treebank_name el_gdt --log_every_n_steps 8
+--aggregation max --probe_layer 9 --treebank_name el_gdt --log_every_n_steps 8
+--aggregation max --probe_layer 12 --treebank_name el_gdt --log_every_n_steps 8
+--aggregation mean --probe_layer 1 --treebank_name el_gdt --log_every_n_steps 8
+--aggregation mean --probe_layer 3 --treebank_name el_gdt --log_every_n_steps 8
+--aggregation mean --probe_layer 6 --treebank_name el_gdt --log_every_n_steps 8
+--aggregation mean --probe_layer 9 --treebank_name el_gdt --log_every_n_steps 8
+--aggregation mean --probe_layer 12 --treebank_name el_gdt --log_every_n_steps 8
