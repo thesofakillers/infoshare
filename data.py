@@ -77,29 +77,16 @@ class UDDataModule(LightningDataModule):
         print("Downloading UniversalDependencies data from HuggingFace")
         dataset = load_dataset("universal_dependencies", self.hparams.treebank_name)
 
-        # Only keep columns that are relevant to our task
-        keep_columns = ["tokens"]
-        if self.hparams.task == "POS":
-            keep_columns += ["upos"]
-        elif self.hparams.task == "DEP":
-            keep_columns += ["head", "deprel"]
+        # Only keep columns that are relevant to our tasks
+        keep_columns = ["tokens", "upos", "head", "deprel"]
 
         # Remove tokens that correspond to the underscore class.
         # The UniversalDependencies dataset essentially splits compound words into their parts
         # but keeps the original token in the list of tokens as well. This will cause problems
         # when we try to parse the sentences, especially for dependency relations which is
         # affected by the word order as the "head" value is a token index.
-        if self.hparams.task == "POS":
-            target_class = "upos"
-            target_value = dataset["train"].info.features["upos"].feature.names.index("_")
-        else:
-            target_class = "deprel"
-            target_value = "_"
-
         def remove_underscores(x: Dict[str, list]) -> Dict[str, list]:
-            keep_indices = [
-                idx for idx, value in enumerate(x[target_class]) if value != target_value
-            ]
+            keep_indices = [idx for idx, value in enumerate(x["head"]) if value != "None"]
             for column in keep_columns:
                 x[column] = [x[column][idx] for idx in keep_indices]
 
@@ -107,6 +94,15 @@ class UDDataModule(LightningDataModule):
 
         drop_columns = set(dataset["train"].column_names).difference(keep_columns)
         dataset = dataset.map(remove_underscores, remove_columns=list(drop_columns))
+
+        # Handle the "head" features being a string instead of an int and some "deprel" features
+        # having a language-specific relation modifier.
+        def handle_dep_features(x: Dict[str, list]) -> Dict[str, list]:
+            x["head"] = [int(value) for value in x["head"]]
+            x["deprel"] = [value.split(":")[0] for value in x["deprel"]]
+            return x
+
+        dataset = dataset.map(handle_dep_features)
 
         print("Saving to disk")
         dataset.save_to_disk(self.dataset_dir)
@@ -124,16 +120,9 @@ class UDDataModule(LightningDataModule):
             elif self.hparams.task == "DEP":
                 # Aggregate all classes from the train dataset
                 # We include "_" to comply with the number of classes in the dataset spec
-                all_classes = set("_").union(*self.ud_train["deprel"])
-                # Remove classes that have a language-specific modifier
-                main_classes = sorted([drel for drel in all_classes if ":" not in drel])
-                # Create a mapping from (main) class names to unique ids
+                main_classes = sorted(set("_").union(*self.ud_train["deprel"]))
+                # Create a mapping from class names to unique ids
                 self.cname_to_id = {cname: i for i, cname in enumerate(main_classes)}
-                # Add a mapping from the language-specific classes to the broader ones
-                for spec_class in all_classes.difference(main_classes):
-                    col_idx = spec_class.index(":")
-                    main_class = spec_class[:col_idx]
-                    self.cname_to_id[spec_class] = self.cname_to_id[main_class]
 
                 self.id_to_cname = main_classes
                 self.num_classes = len(main_classes)
@@ -163,7 +152,7 @@ class UDDataModule(LightningDataModule):
         self, batch: List[Dict[str, Any]]
     ) -> Tuple[BatchEncoding, List[LongTensor], List[LongTensor]]:
         encodings = self.tokenize_fn([x["tokens"] for x in batch])
-        heads = [LongTensor([int(h) for h in x["head"]]) for x in batch]
+        heads = [LongTensor(x["head"]) for x in batch]
         targets = [self.map_drels_to_ids(x["deprel"]) for x in batch]
         return encodings, heads, targets
 
