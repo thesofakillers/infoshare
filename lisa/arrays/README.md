@@ -40,7 +40,7 @@ To evaluate a set of trained models using (cross-)neutralizing, you first need t
 
 You can do this automatically with the following bash script:
 ```bash
-bash lisa/arrays/generate_neutralizer_tags.sh <task>
+bash lisa/arrays/generate_neutr_hparams.sh <task>
 ```
 
 Then, you can schedule an array of jobs with the following command:
