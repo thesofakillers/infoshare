@@ -1,7 +1,7 @@
 from .base_classifier import BaseClassifier
 from torch import nn, Tensor
 from transformers import BatchEncoding
-from typing import Tuple
+from typing import Dict, Tuple
 
 
 class POSClassifier(BaseClassifier):
@@ -17,8 +17,12 @@ class POSClassifier(BaseClassifier):
         output = self.classifier(embeddings)
         return embeddings, output
 
-    def process_batch(self, batch: Tuple) -> Tuple[Tensor, Tensor, Tensor]:
+    def process_batch(self, batch: Tuple) -> Dict[str, Tensor]:
         """given a batch, returns embeddings, logits and targets"""
         encoded_inputs, targets = batch
         embeddings, logits = self(encoded_inputs)
-        return embeddings, logits, targets
+        return {
+            "embeddings": embeddings,
+            "logits": logits,
+            "targets": targets,
+        }

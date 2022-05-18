@@ -8,7 +8,7 @@ from torch import nn, Tensor
 from torch.nn.utils.rnn import pad_sequence
 from torch.optim import AdamW, Optimizer
 from transformers import AutoTokenizer
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -71,8 +71,11 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         return output
 
     @abstractmethod
-    def process_batch(self, batch: Tuple) -> Tuple[Tensor, Tensor, Tensor]:
+    def process_batch(self, batch: Tuple) -> Dict[str, Tensor]:
         raise NotImplementedError()
+
+    def intercept_embeddings(self, **kwargs) -> Tensor:
+        return kwargs["embeddings"]
 
     @torch.no_grad()
     def calculate_average_accuracy(
@@ -121,7 +124,10 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
                 self.class_centroids[pred] += [emb]
 
     def fit_step(self, batch: Tuple, stage: str) -> Tensor:
-        batch_embs, batch_logits, targets = self.process_batch(batch)
+        processed_batch = self.process_batch(batch)
+        batch_embs = processed_batch["embeddings"]
+        batch_logits = processed_batch["logits"]
+        targets = processed_batch["targets"]
         batch_size = len(batch_logits)
 
         # Pad & mask target values to use with CE
@@ -155,7 +161,10 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
             self.class_centroids[class_id] = centroid.to(self.device)
 
     def test_step(self, batch: Tuple, _: Tensor):
-        embs, logits, targets = self.process_batch(batch)
+        processed_batch = self.process_batch(batch)
+        embs = processed_batch["embeddings"]
+        logits = processed_batch["logits"]
+        targets = processed_batch["targets"]
 
         if not self.has_neutralizer:
             # perform standard testing
@@ -163,6 +172,8 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         else:
             # perform the testing on neutralized embeddings
             neutral_embs = self.subtract_centroid(embs)
+            processed_batch["embeddings"] = neutral_embs
+            neutral_embs = self.intercept_embeddings(**processed_batch)
             neutral_logits = self.classifier(neutral_embs)
             self.log_accuracy(
                 neutral_logits,

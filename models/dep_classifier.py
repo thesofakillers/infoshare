@@ -2,7 +2,7 @@ from .base_classifier import BaseClassifier
 from torch import nn, Tensor
 from torch.nn.utils.rnn import pad_sequence
 from transformers import BatchEncoding
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import torch
 
@@ -15,8 +15,9 @@ class DEPClassifier(BaseClassifier):
             nn.Linear(n_hidden, n_classes),
         )
 
-    def forward(self, encoded_input: BatchEncoding, heads: List[Tensor]) -> Tuple[Tensor, Tensor]:
-        embeddings = self.bert(encoded_input)
+    def intercept_embeddings(self, **kwargs) -> Tensor:
+        embeddings = kwargs["embeddings"]
+        heads = kwargs["heads"]
 
         classifier_input = []
         # Concatenate each word representation with its head's
@@ -35,10 +36,20 @@ class DEPClassifier(BaseClassifier):
             ]
 
         classifier_input = pad_sequence(classifier_input, batch_first=True)
+        return classifier_input
+
+    def forward(self, encoded_input: BatchEncoding, heads: List[Tensor]) -> Tuple[Tensor, Tensor]:
+        embeddings = self.bert(encoded_input)
+        classifier_input = self.intercept_embeddings(embeddings=embeddings, heads=heads)
         output = self.classifier(classifier_input)
         return embeddings, output
 
-    def process_batch(self, batch: Tuple) -> Tuple[Tensor, Tensor, Tensor]:
+    def process_batch(self, batch: Tuple) -> Dict[str, Tensor]:
         encoded_inputs, heads, targets = batch
         embeddings, logits = self(encoded_inputs, heads)
-        return embeddings, logits, targets
+        return {
+            "embeddings": embeddings,
+            "heads": heads,
+            "logits": logits,
+            "targets": targets,
+        }
