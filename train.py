@@ -1,24 +1,18 @@
 from argparse import ArgumentParser, Namespace
 from data import UDDataModule
 from functools import partial
-import models
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from transformers import AutoTokenizer, logging
+from utils import get_experiment_name
 
+import models
 import os
 import torch
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 logging.set_verbosity_error()
-
-
-def get_experiment_name(args: Namespace) -> str:
-    experiment_name = f"agg={args.aggregation}_probe={args.probe_layer}"
-    if args.task == "DEP":
-        experiment_name += f"_concat-mode={args.concat_mode}"
-    return experiment_name
 
 
 def train(args: Namespace):

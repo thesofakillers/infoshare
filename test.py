@@ -5,16 +5,13 @@ from models import *
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from transformers import AutoTokenizer, logging
+from utils import get_experiment_name
 
 import os
 import torch
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 logging.set_verbosity_error()
-
-
-def get_experiment_name(hparams: Namespace) -> str:
-    return f"agg={hparams.aggregation}_probe={hparams.probe_layer}"
 
 
 def test(args: Namespace):
