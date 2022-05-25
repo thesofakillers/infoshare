@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_shared_course
+#SBATCH --gres=gpu:1
+#SBATCH --job-name=DEP_Eval_XNeutral_XLingual
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=3
+#SBATCH --time=00:10:00
+#SBATCH --mem=32000M
+#SBATCH --array=1-216%2
+#SBATCH --output=lisa/outputs/eval_logs/dep/xlingual_xneutral_%A_%a.out
+
+module purge
+module load 2021
+module load Anaconda3/2021.05
+
+source activate bert-infoshare
+
+XLINGUAL_NEUTR_HPARAMS_FILE=./lisa/arrays/pos/xlingual_neutr_hparams.txt
+srun python -u test_xlingual.py --num_workers 3 \
+                        $(head -$SLURM_ARRAY_TASK_ID $XLINGUAL_NEUTR_HPARAMS_FILE | tail -1)
