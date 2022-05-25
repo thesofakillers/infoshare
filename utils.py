@@ -103,11 +103,12 @@ def get_acc_drop(eval_path, keep_cols=None):
     return acc_drop
 
 
-def get_experiments_df(task, treebank, model, logdir="../lightning_logs"):
+def get_experiments_df(task, treebank, model, logdir="lightning_logs"):
     experiments = {}
     for path in glob.glob(f"{logdir}/{model}/{treebank}/{task}/*/evaluation"):
         res = re.search(EXPERIMENT_REGEX, path)
         experiment = res.group(1)
+        baseline= get_base_series(f"{path}/events*")
         acc_drop = get_acc_drop(path)
 
         self_neutr = {}
@@ -115,7 +116,9 @@ def get_experiments_df(task, treebank, model, logdir="../lightning_logs"):
             tag = tag.upper()
             self_neutr[tag] = acc_drop[tag][tag]
 
+
         self_neutr["avg"] = np.nanmean(list(self_neutr.values()))
+        self_neutr["baseline"] = baseline["avg"]
         experiments[experiment] = self_neutr
 
     df = pd.DataFrame(experiments)
@@ -129,3 +132,14 @@ def get_experiments_df(task, treebank, model, logdir="../lightning_logs"):
     df.index.name = "Experiment"
     return df
 
+
+def select_best_mode(experiments_df):
+    mode = (
+        experiments_df.loc[experiments_df["baseline"].nlargest(len(experiments_df) // 4).index][
+            "avg"
+        ]
+        .nsmallest(1)
+        .index[0]
+    )
+
+    return mode
