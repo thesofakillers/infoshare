@@ -34,8 +34,8 @@ Then, you can schedule an array of jobs with the following command:
 sbatch lisa/arrays/<task>/eval_base.job
 ```
 
-## Job: (Cross-) Neutralizing evaluation
-To evaluate a set of trained models using (cross-)neutralizing, you first need to generate the pairs of
+## Job: Cross-neutralizing evaluation
+To evaluate a set of trained models using cross-neutralizing, you first need to generate the pairs of
 (checkpoint, neutralizer tag).
 
 You can do this automatically with the following bash script:
@@ -46,4 +46,20 @@ bash lisa/arrays/generate_neutr_hparams.sh <task>
 Then, you can schedule an array of jobs with the following command:
 ```bash
 sbatch lisa/arrays/<task>/eval_xneutral.job
+```
+
+## Job: Cross-lingual cross-neutralizing evaluation
+To evaluate a set of trained models using cross-lingual cross-neutralizing, you first need to generate
+the pairs of (neutralizer_checkpoint, target_checkpoint, neutralizer_tag).
+
+You can do this automatically with the following bash script:
+```bash
+bash lisa/arrays/generate_xlingual_neutr_hparams.sh <task>
+```
+This script assumes that you have a `cherry_checkpoints.txt` file in the `lisa/arrays/<task>` directory,
+which contains the list of checkpoints to generate all (neutralizer, target) pairs with.
+
+Then, you can schedule an array of jobs with the following command:
+```bash
+sbatch lisa/arrays/<task>/eval_xneutral_xlingual.job
 ```
