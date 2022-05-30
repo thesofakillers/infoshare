@@ -280,7 +280,8 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         # Encode sentence
         encoding = self.tokenize_fn(sentence)
         # Predict a class for each word
-        output = self(encoding).squeeze(dim=0)
+        _, output = self(encoding)
+        output = output.squeeze(dim=0)
         # Map each prediction to its class name
         output = [self.hparams.class_map[i] for i in output.argmax(dim=1)]
         return output
