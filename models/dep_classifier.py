@@ -22,10 +22,9 @@ class DEPClassifier(BaseClassifier):
         return parent_parser
 
     def get_classifier_head(self, n_hidden: int, n_classes: int) -> nn.Module:
-
-        input_multiplier = 2
+        input_multiplier = 2  # 2x input for "ONLY" concat_mode
         if self.hparams.concat_mode in {"ABS", "MEAN"}:
-            input_multiplier += 2
+            input_multiplier += 2  # 4x input for "ABS" and "MEAN" concat_modes
         return nn.Sequential(
             nn.Linear(input_multiplier * n_hidden, n_hidden),
             nn.Tanh(),

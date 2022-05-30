@@ -41,6 +41,13 @@ class BERTEncoderForWordClassification(Module):
         probe_layer: int = -1,
         **kwargs,
     ):
+        """BERT encoder that produces a single embedding per word (instead of word-piece).
+
+        Args:
+            encoder_name (str): the name of the HuggingFace model to use as an encoder
+            aggregation (str): the method for wordpiece embedding aggregation
+            probe_layer (int): the index of the encoder layer to output for probing
+        """
         super().__init__()
 
         self.encoder_name = encoder_name
@@ -70,7 +77,7 @@ class BERTEncoderForWordClassification(Module):
 
             # Split, aggregate and concatenate BERT representations
             sequence_output_per_word = torch.split(sequence_output_per_token[start:end], split_idx)
-            sequence_output_per_word = list(map(self.aggregation_fn, sequence_output_per_word))
+            sequence_output_per_word = list(map(self.aggregate, sequence_output_per_word))
             sequence_output_per_word = torch.vstack(sequence_output_per_word)
 
             # Append sequence output to batch outputgit
@@ -81,7 +88,8 @@ class BERTEncoderForWordClassification(Module):
 
         return batch_output_per_word
 
-    def aggregation_fn(self, x: Tensor) -> Tensor:
+    def aggregate(self, x: Tensor) -> Tensor:
+        """Aggregate the word-piece BERT embeddings to produce a word-level representation."""
         if self.aggregation == "mean":
             return torch.mean(x, dim=0)
         elif self.aggregation == "max":
@@ -91,7 +99,9 @@ class BERTEncoderForWordClassification(Module):
         else:
             raise ValueError(f"Unknown aggregation function: {self.aggregation}")
 
+    @property
     def hidden_size(self) -> int:
+        """Return the hidden size of the BERT encoder."""
         return self.model.config.hidden_size
 
     @staticmethod

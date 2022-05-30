@@ -65,7 +65,9 @@ def test(args: Namespace):
         args.target_checkpoint, num_workers=args.num_workers
     )
     target_model.set_encoder(bert)
+    # Copy the centroids from the neutralizer to the target
     target_model.class_centroids = neutr_model.class_centroids
+    # Set the neutralizer for the target model
     target_model.set_neutralizer(args.neutralizer)
 
     # Load PL datamodule

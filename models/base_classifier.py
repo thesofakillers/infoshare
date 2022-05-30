@@ -8,7 +8,7 @@ from torch import nn, Tensor
 from torch.nn.utils.rnn import pad_sequence
 from torch.optim import AdamW, Optimizer
 from transformers import AutoTokenizer
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
@@ -27,6 +27,12 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         )
         return parent_parser
 
+    # Declare variables that will be initialized later
+    bert: BERTEncoderForWordClassification
+    tokenize_fn: Callable
+    class_centroids: Dict[int, Union[Tensor, List[Tensor]]]
+    neutralizer: Optional[str]
+
     def __init__(
         self,
         n_hidden: int,
@@ -36,6 +42,15 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         ignore_idx: Optional[int] = None,
         **kwargs,
     ):
+        """Abstract classifier class for probing tasks.
+
+        Args:
+            n_hidden (int): the number of hidden units in the classifier head
+            n_classes (int): the number of target classes
+            class_map (List[str]): the mapping of class ids to class names
+            lr (float): the learning rate for the classifier
+            ignore_idx (int): the index to ignore in the target vector
+        """
         super().__init__()
         self.save_hyperparameters()
 
@@ -47,7 +62,14 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         # no neutralizer unless set with set_neutralizer(str)
         self.has_neutralizer = False
 
+    ###########
+    # Setters #
+    ###########
+
     def set_encoder(self, bert: BERTEncoderForWordClassification):
+        """Set the BERT encoder to use for probing tasks.
+        This is handled outside the constructor to deal with loading from checkpoints.
+        """
         self.bert = bert
 
         tokenizer = AutoTokenizer.from_pretrained(
@@ -56,72 +78,52 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         )
         self.tokenize_fn = partial(tokenizer, return_tensors="pt")
 
-    @abstractmethod
-    def get_classifier_head(self, n_hidden, n_classes: int) -> nn.Module:
-        raise NotImplementedError()
+    def set_neutralizer(self, neutralizer_str: str):
+        """Sets the neutralizer class to use for the evaluation."""
+        assert (
+            neutralizer_str in self.label_to_id.keys()
+        ), f"Invalid neutralizer string used, must be one of {self.label_to_id.keys()}"
+        self.neutralizer = neutralizer_str
+        self.has_neutralizer = True
 
-    @torch.no_grad()
-    def infer(self, sentence: str) -> List[str]:
-        # Encode sentence
-        encoding = self.tokenize_fn(sentence)
-        # Predict a class for each word
-        output = self(encoding).squeeze(dim=0)
-        # Map each prediction to its class name
-        output = [self.hparams.class_map[i] for i in output.argmax(dim=1)]
-        return output
+    ####################
+    # Abstract methods #
+    ####################
+
+    @abstractmethod
+    def get_classifier_head(self, n_hidden: int, n_classes: int) -> nn.Module:
+        """Defines the torch module used as the classifier head."""
+        raise NotImplementedError()
 
     @abstractmethod
     def process_batch(self, batch: Tuple) -> Dict[str, Tensor]:
+        """Handles the unpacking of the batch into a dictionary of tensors."""
         raise NotImplementedError()
 
     def intercept_embeddings(self, **kwargs) -> Tensor:
+        """Intercepts the embeddings from the BERT encoder when needed (e.g. DEP representations)."""
         return kwargs["embeddings"]
 
-    @torch.no_grad()
-    def calculate_average_accuracy(
-        self,
-        logits: Tensor,
-        targets: Tensor,
-        average: str = "micro",
-    ) -> Tensor:
-        # Extract sequence length from number of POS tags to predict
-        sequence_lengths = [len(_) for _ in targets]
+    #########################
+    # Training & validation #
+    #########################
 
-        # Calculate accuracy as the mean over all sentences
-        acc = torch.vstack(
-            [
-                TF.accuracy(
-                    preds=logits[i, : sequence_lengths[i], :],
-                    target=targets[i],
-                    average=average,
-                    num_classes=logits.shape[-1],
-                    ignore_index=self.hparams.ignore_idx,
-                )
-                for i in range(len(targets))
-            ]
-        ).nanmean(dim=0)
-
-        return acc
+    def training_step(self, batch: Tuple, _: Tensor) -> Tensor:
+        return self.fit_step(batch, "train")
 
     def on_validation_epoch_start(self):
-        # we overwrite class_centroids at every epoch
+        # We overwrite class_centroids at every epoch
         self.class_centroids = defaultdict(list)
 
+    def validation_step(self, batch: Tuple, _: Tensor):
+        self.fit_step(batch, "val")
+
     def on_validation_epoch_end(self):
-        """
-        at the end of the epoch, we take the mean of vectors
-        accumulated for each class and store it
-        """
+        # At the end of the epoch, we take the mean of vectors
+        # accumulated for each class and store it in class_centroids
         self.class_centroids = {
             k: torch.mean(torch.vstack(v), dim=0) for k, v in self.class_centroids.items()
         }
-
-    def postprocess_val_batch(self, batch_embs: Tensor, batch_logits: Tensor, targets: Tensor):
-        for embs, logits, target in zip(batch_embs, batch_logits, targets):
-            preds = logits[: len(target), :].argmax(dim=1).tolist()
-            # for each word in sentence
-            for emb, pred in zip(embs, preds):
-                self.class_centroids[pred] += [emb]
 
     def fit_step(self, batch: Tuple, stage: str) -> Tensor:
         processed_batch = self.process_batch(batch)
@@ -137,7 +139,6 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         # Calculate & log CrossEntropy loss
         # NOTE: CE expects input shape (N, C, S) while logits' shape is (N, S, C)
         loss = F.cross_entropy(batch_logits.permute(0, 2, 1), targets_padded, ignore_index=-1)
-        # loss = F.cross_entropy(batch_logits.permute(0, 2, 1), targets_padded, ignore_index=-1, reduction='none').mean()
         self.log(f"{stage}_loss", loss, batch_size=batch_size)
 
         # Calculate & log average accuracy
@@ -149,11 +150,17 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
 
         return loss
 
-    def training_step(self, batch: Tuple, _: Tensor) -> Tensor:
-        return self.fit_step(batch, "train")
+    def postprocess_val_batch(self, batch_embs: Tensor, batch_logits: Tensor, targets: Tensor):
+        """Postprocess the validation batch in order to calculate the class centroids."""
+        for embs, logits, target in zip(batch_embs, batch_logits, targets):
+            preds = logits[: len(target), :].argmax(dim=1).tolist()
+            # for each word in sentence
+            for emb, pred in zip(embs, preds):
+                self.class_centroids[pred] += [emb]
 
-    def validation_step(self, batch: Tuple, _: Tensor):
-        self.fit_step(batch, "val")
+    ##############
+    # Evaluation #
+    ##############
 
     def on_test_start(self):
         # Move centroids to model's device
@@ -167,10 +174,10 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         targets = processed_batch["targets"]
 
         if not self.has_neutralizer:
-            # perform standard testing
+            # Perform standard testing
             self.log_accuracy(logits, targets, stage="test")
         else:
-            # perform the testing on neutralized embeddings
+            # Perform the testing on neutralized embeddings
             neutral_embs = self.subtract_centroid(embs)
             processed_batch["embeddings"] = neutral_embs
             neutral_logits = self.classifier(neutral_embs)
@@ -190,12 +197,34 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         neutral_embs = embs - centroid_emb
         return neutral_embs
 
-    def set_neutralizer(self, neutralizer_str: str):
-        assert (
-            neutralizer_str in self.label_to_id.keys()
-        ), f"Invalid neutralizer string used, must be one of {self.label_to_id.keys()}"
-        self.neutralizer = neutralizer_str
-        self.has_neutralizer = True
+    ####################
+    # Module optimizer #
+    ####################
+
+    def configure_optimizers(self) -> Optimizer:
+        return AdamW(self.classifier.parameters(), lr=self.hparams.lr)
+
+    ###############
+    # Checkpoints #
+    ###############
+
+    def on_save_checkpoint(self, ckpt: dict):
+        # Save class centroids
+        ckpt["class_centroids"] = self.class_centroids
+
+        # Remove BERT from checkpoint as we can load it dynamically
+        keys = list(ckpt["state_dict"].keys())
+        for key in keys:
+            if key.startswith("bert."):
+                del ckpt["state_dict"][key]
+
+    def on_load_checkpoint(self, ckpt: dict):
+        # Load class centroids
+        self.class_centroids = ckpt["class_centroids"]
+
+    #####################
+    # Logging & metrics #
+    #####################
 
     def log_accuracy(self, logits: Tensor, targets: Tensor, stage: str, prefix: str = ""):
         batch_size = len(logits)
@@ -214,19 +243,44 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
             class_name = self.hparams.class_map[i]
             self.log(f"{prefix}{stage}_acc_{class_name}", acc_i, batch_size=batch_size)
 
-    def configure_optimizers(self) -> Optimizer:
-        return AdamW(self.classifier.parameters(), lr=self.hparams.lr)
+    @torch.no_grad()
+    def calculate_average_accuracy(
+        self,
+        logits: Tensor,
+        targets: Tensor,
+        average: str = "micro",
+    ) -> Tensor:
+        """Calculates the mean accuracy based on the averaging method specified."""
+        # Extract sequence length from number of POS tags to predict
+        sequence_lengths = [len(_) for _ in targets]
 
-    def on_save_checkpoint(self, ckpt: dict):
-        # Save class centroids
-        ckpt["class_centroids"] = self.class_centroids
+        # Calculate accuracy as the mean over all sentences
+        acc = torch.vstack(
+            [
+                TF.accuracy(
+                    preds=logits[i, : sequence_lengths[i], :],
+                    target=targets[i],
+                    average=average,
+                    num_classes=logits.shape[-1],
+                    ignore_index=self.hparams.ignore_idx,
+                )
+                for i in range(len(targets))
+            ]
+        ).nanmean(dim=0)
 
-        # Remove BERT from checkpoint as we can load it dynamically
-        keys = list(ckpt["state_dict"].keys())
-        for key in keys:
-            if key.startswith("bert."):
-                del ckpt["state_dict"][key]
+        return acc
 
-    def on_load_checkpoint(self, ckpt: dict):
-        # Load class centroids
-        self.class_centroids = ckpt["class_centroids"]
+    #######################
+    # Model demonstration #
+    #######################
+
+    @torch.no_grad()
+    def infer(self, sentence: str) -> List[str]:
+        """Infer the labels for a given sentence."""
+        # Encode sentence
+        encoding = self.tokenize_fn(sentence)
+        # Predict a class for each word
+        output = self(encoding).squeeze(dim=0)
+        # Map each prediction to its class name
+        output = [self.hparams.class_map[i] for i in output.argmax(dim=1)]
+        return output

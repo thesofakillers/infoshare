@@ -18,7 +18,6 @@ class POSClassifier(BaseClassifier):
         return embeddings, output
 
     def process_batch(self, batch: Tuple) -> Dict[str, Tensor]:
-        """given a batch, returns embeddings, logits and targets"""
         encoded_inputs, targets = batch
         embeddings, logits = self(encoded_inputs)
         return {

@@ -52,7 +52,7 @@ def train(args: Namespace):
         model = model_class.load_from_checkpoint(args.checkpoint)
     else:
         model_args = {
-            "n_hidden": bert.hidden_size(),
+            "n_hidden": bert.hidden_size,
             "n_classes": ud.num_classes,
             "class_map": ud.id_to_cname,
             **vars(args),

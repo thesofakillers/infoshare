@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 from datasets import load_dataset, load_from_disk
+from datasets.arrow_dataset import Dataset
 from pytorch_lightning import LightningDataModule
 from torch import LongTensor
 from torch.utils.data import DataLoader
@@ -13,28 +14,24 @@ class UDDataModule(LightningDataModule):
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
         parser = parent_parser.add_argument_group("Dataset")
-
         parser.add_argument(
             "--batch_size",
             type=int,
             default=64,
             help="The batch size used by the dataloaders.",
         )
-
         parser.add_argument(
             "--data_dir",
             type=str,
             default="./data",
             help="The data directory to load/store the datasets.",
         )
-
         parser.add_argument(
             "--num_workers",
             type=int,
             default=4,
             help="The number of subprocesses used by the dataloaders.",
         )
-
         parser.add_argument(
             "--task",
             type=str,
@@ -42,15 +39,22 @@ class UDDataModule(LightningDataModule):
             choices=["DEP", "POS"],
             help="The task to train the probing classifier on.",
         )
-
         parser.add_argument(
             "--treebank_name",
             type=str,
             default="en_gum",
             help="The name of the treebank to use as the dataset.",
         )
-
         return parent_parser
+
+    # Declare variables that will be initialized later
+    ud_train: Dataset
+    ud_val: Dataset
+    ud_test: Dataset
+    ud_debug: Dataset
+    cname_to_id = Optional[Dict[str, int]]
+    id_to_cname: List[str]
+    num_classes: int
 
     def __init__(
         self,
@@ -61,6 +65,16 @@ class UDDataModule(LightningDataModule):
         batch_size: int = 64,
         num_workers: int = 4,
     ):
+        """Data module for the Universal Dependencies framework.
+
+        Args:
+            task (str): the task to train the probing classifier on (either POS or DEP).
+            treebank_name (str): the name of the treebank to use as the dataset
+            tokenize_fn (Callable): a function that takes a sentence and returns a list of tokens
+            data_dir: (str): the data directory to load/store the datasets
+            batch_size (int): the batch size used by the dataloaders
+            num_workers (int): the number of subprocesses used by the dataloaders
+        """
         super().__init__()
         self.save_hyperparameters(ignore=["tokenize_fn"])
 
@@ -134,6 +148,7 @@ class UDDataModule(LightningDataModule):
             self.ud_debug = dataset["validation"].select(list(range(50)))
 
     def get_collate_fn(self) -> Callable:
+        """Returns a collate function for the dataloader based on the task."""
         if self.hparams.task == "POS":
             return self.pos_collate_fn
         elif self.hparams.task == "DEP":
@@ -141,9 +156,11 @@ class UDDataModule(LightningDataModule):
         # Add more cases here if needed
 
     def map_drels_to_ids(self, drels: List[str]) -> LongTensor:
+        """Maps a list of dependency relations to unique ids."""
         return LongTensor([self.cname_to_id[drel] for drel in drels])
 
     def pos_collate_fn(self, batch: List[Dict[str, Any]]) -> Tuple[BatchEncoding, List[LongTensor]]:
+        """Custom collate function for the POS task."""
         encodings = self.tokenize_fn([x["tokens"] for x in batch])
         targets = [LongTensor(x["upos"]) for x in batch]
         return encodings, targets
@@ -151,6 +168,7 @@ class UDDataModule(LightningDataModule):
     def dep_collate_fn(
         self, batch: List[Dict[str, Any]]
     ) -> Tuple[BatchEncoding, List[LongTensor], List[LongTensor]]:
+        """Custom collate function for the DEP task."""
         encodings = self.tokenize_fn([x["tokens"] for x in batch])
         heads = [LongTensor(x["head"]) for x in batch]
         targets = [self.map_drels_to_ids(x["deprel"]) for x in batch]
