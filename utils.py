@@ -3,6 +3,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 from typing import List, Optional
 
 import glob
+import torch
 import numpy as np
 import pandas as pd
 import re
@@ -184,3 +185,22 @@ def select_best_mode(experiments_df: pd.DataFrame) -> str:
     config = experiments_df.loc[top_quartile.index]["avg"].nsmallest(1).index[0]
 
     return config
+
+
+def extract_centroids(ckpt_file: str, centroids_file: str, no_gpu: bool = False):
+    """
+    Extracts the dictionary of centroids from a specified model checkpoint and saves them
+    to a new .pt file.
+
+    Args:
+        ckpt_file (str): The checkpoint of the model to extract the centroids from.
+        centroids_file (str): The path to the file to save the centroids at.
+        no_gpu (bool): Whether to load the checkpoint file on CPU.
+    """
+    device = "cpu" if no_gpu or (not torch.cuda.is_available()) else "cuda"
+    c = torch.load(ckpt_file, map_location=device)
+
+    centroids = c["class_centroids"]
+    classes = c["hyper_parameters"]["class_map"]
+    centroids = {classes[k]: v for k, v in centroids.items()}
+    torch.save(centroids, centroids_file)
