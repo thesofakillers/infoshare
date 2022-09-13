@@ -194,6 +194,14 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         """
         neutralizer_id = self.label_to_id[self.neutralizer]
         centroid_emb = self.class_centroids[neutralizer_id]
+        # check for length mismatch and 0-pad or truncate (happens in x-task x-neutral)
+        if embs.shape[-1] != centroid_emb.shape[0]:
+            if centroid_emb.shape[0] < embs.shape[-1]:
+                centroid_emb = torch.cat(
+                    [centroid_emb, torch.zeros(embs.shape[-1] - centroid_emb.shape[0])]
+                )
+            elif centroid_emb.shape[0] > embs.shape[-1]:
+                centroid_emb = centroid_emb[: embs.shape[-1]]
         neutral_embs = embs - centroid_emb
         return neutral_embs
 
@@ -269,6 +277,17 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         ).nanmean(dim=0)
 
         return acc
+
+    @torch.no_grad()
+    def load_centroids(self, file_path: str):
+        # load centroids from file
+        centroids = torch.load(file_path)
+        # override label_to_id
+        self.label_to_id = {label: i for i, label in enumerate(sorted(centroids.keys()))}
+        # override class_centroids, consistently with label_to_id
+        self.class_centroids = {
+            i: centroids[label] for i, label in enumerate(sorted(centroids.keys()))
+        }
 
     #######################
     # Model demonstration #

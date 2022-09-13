@@ -53,6 +53,8 @@ def test(args: Namespace):
     print(f"Loading from checkpoint: {args.checkpoint}")
     model = model_class.load_from_checkpoint(args.checkpoint, num_workers=args.num_workers)
     model.set_encoder(bert)
+    if args.centroids_file is not None:
+        model.load_centroids(args.centroids_file)
 
     # Load PL datamodule
     ud = UDDataModule(
@@ -163,7 +165,12 @@ if __name__ == "__main__":
         default=4,
         help="The number of subprocesses used by the dataloaders.",
     )
-
+    parser.add_argument(
+        "--centroids_file",
+        type=str,
+        default=None,
+        help="Custom centroids file to use for neutralisation. (Optional)",
+    )
     args = parser.parse_args()
 
     os.makedirs(args.data_dir, exist_ok=True)
