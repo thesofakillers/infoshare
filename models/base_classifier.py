@@ -198,7 +198,10 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         if embs.shape[-1] != centroid_emb.shape[0]:
             if centroid_emb.shape[0] < embs.shape[-1]:
                 centroid_emb = torch.cat(
-                    [centroid_emb, torch.zeros(embs.shape[-1] - centroid_emb.shape[0])]
+                    [
+                        centroid_emb,
+                        torch.zeros(embs.shape[-1] - centroid_emb.shape[0], device=self.device),
+                    ]
                 )
             elif centroid_emb.shape[0] > embs.shape[-1]:
                 centroid_emb = centroid_emb[: embs.shape[-1]]
