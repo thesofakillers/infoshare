@@ -3,7 +3,6 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 from typing import List, Optional
 
 import glob
-import torch
 import numpy as np
 import pandas as pd
 import re
@@ -20,14 +19,24 @@ def get_experiment_name(args: Namespace) -> str:
     return experiment_name
 
 
-def get_xneutr_df(experiment_path: str) -> pd.DataFrame:
+def get_xneutr_df(experiment_path: str, suffix_filter=None) -> pd.DataFrame:
     """Returns a dataframe with the target names as columns and the neutralizer names as index."""
     neutralizers = {}
+    if suffix_filter is not None:
+        pattern = re.compile(suffix_filter)
     for run_path in glob.glob(experiment_path):
         # Extract the neutralizer name from the path
         res = re.search(TAG_REGEX, run_path)
-        neutr_tag = res.group(1).upper()
+        neutr_tag = res.group(1)
+        
+        if suffix_filter is not None:
+            # skip this neutralising tag
+            if not pattern.match(neutr_tag):
+                continue
+            
 
+        neutr_tag = neutr_tag.upper()
+            
         # Get the data for the run from Tensorboard
         ea = EventAccumulator(run_path)
         ea.Reload()
@@ -87,7 +96,7 @@ def get_baseline_series(experiment_path: str) -> pd.Series:
     return pd.Series(scalars)
 
 
-def get_acc_drop(eval_path: str, keep_cols: Optional[List[str]] = None) -> pd.DataFrame:
+def get_acc_drop(eval_path: str, keep_cols: Optional[List[str]] = None, suffix_filter=None) -> pd.DataFrame:
     """Returns a dataframe with the relative accuracy drop with cross-neutralizing.
 
     Args:
@@ -99,21 +108,29 @@ def get_acc_drop(eval_path: str, keep_cols: Optional[List[str]] = None) -> pd.Da
     """
     # Get the baseline and cross-neutralizing results
     base_series = get_baseline_series(f"{eval_path}/events*")
-    xn_df = get_xneutr_df(f"{eval_path}_*/events*")
+    xn_df = get_xneutr_df(f"{eval_path}_*/events*", suffix_filter=suffix_filter)
 
     # Filter the columns that don't appear in the baseline
-    nulls = base_series.isnull()
-    base_series = base_series[~nulls]
-    xn_df = xn_df.T[~nulls].T
+    # we don't do this for cross-task cross neutralisation
+    if suffix_filter is not None:
+        nulls = base_series.isnull()
+        base_series = base_series[~nulls]
+        xn_df = xn_df.T[~nulls].T
 
     # Calculate relative accuracy drop
     acc_drop = (xn_df - base_series) / base_series
     acc_drop.sort_index(axis=0, inplace=True)
     acc_drop.sort_index(axis=1, inplace=True)
 
-    # Filter the columns that don't appear in the index and vice versa
-    drop_indices = set(acc_drop.T.columns).difference(acc_drop.columns)
-    drop_columns = set(acc_drop.columns).difference(acc_drop.T.columns).difference(["avg"])
+    # we don't do this for cross-task cross neutralisation
+    if suffix_filter is None:
+        # Filter the columns that don't appear in the index and vice versa
+        drop_indices = set(acc_drop.T.columns).difference(acc_drop.columns)
+        drop_columns = set(acc_drop.columns).difference(acc_drop.T.columns).difference(["avg"])
+    else:
+        drop_indices = set()
+        drop_columns = set()
+    
 
     # Explicitly add more indices/columns to hide
     for hidden in ("DEP", "APPOS"):
@@ -185,22 +202,3 @@ def select_best_mode(experiments_df: pd.DataFrame) -> str:
     config = experiments_df.loc[top_quartile.index]["avg"].nsmallest(1).index[0]
 
     return config
-
-
-def extract_centroids(ckpt_file: str, centroids_file: str, no_gpu: bool = False):
-    """
-    Extracts the dictionary of centroids from a specified model checkpoint and saves them
-    to a new .pt file.
-
-    Args:
-        ckpt_file (str): The checkpoint of the model to extract the centroids from.
-        centroids_file (str): The path to the file to save the centroids at.
-        no_gpu (bool): Whether to load the checkpoint file on CPU.
-    """
-    device = "cpu" if no_gpu or (not torch.cuda.is_available()) else "cuda"
-    c = torch.load(ckpt_file, map_location=device)
-
-    centroids = c["class_centroids"]
-    classes = c["hyper_parameters"]["class_map"]
-    centroids = {classes[k]: v for k, v in centroids.items()}
-    torch.save(centroids, centroids_file)
