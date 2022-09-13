@@ -289,7 +289,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         self.label_to_id = {label: i for i, label in enumerate(sorted(centroids.keys()))}
         # override class_centroids, consistently with label_to_id
         self.class_centroids = {
-            i: centroids[label] for i, label in enumerate(sorted(centroids.keys()))
+            i: centroids[label].to(self.device) for i, label in enumerate(sorted(centroids.keys()))
         }
 
     #######################
