@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_shared_course
+#SBATCH --gres=gpu:1
+#SBATCH --job-name=POS_Eval_XTask
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=3
+#SBATCH --time=00:10:00
+#SBATCH --mem=32000M
+#SBATCH --array=1-36%2
+#SBATCH --output=lisa/outputs/eval_logs/pos/xtask_%A_%a.out
+
+module purge
+module load 2021
+module load Anaconda3/2021.05
+
+source activate bert-infoshare
+
+CHECKPOINT=./lisa/arrays/pos/checkpoint.ckpt
+CENTROIDS=./lisa/arrays/dep/dep_centroids.pt
+NEUTRALIZERS=./lisa/arrays/dep/neutralizers.txt
+
+srun python -u test.py --num_workers 3 \
+                       --checkpoint $CHECKPOINT \
+                       --centroids_file $CENTROIDS \
+                       --neutralizer $(head -$SLURM_ARRAY_TASK_ID $NEUTRALIZERS | tail -1)
