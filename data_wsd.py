@@ -1,17 +1,19 @@
 "Work in progress"
 
+from functools import partial
 import os
+import zipfile
 from argparse import ArgumentParser
-from typing import Any, Dict, List, Optional, Callable, Tuple
+from typing import Callable, Optional, Dict, List
 
 from datasets.arrow_dataset import Dataset
-from datasets.load import load_dataset
 from pytorch_lightning import LightningDataModule
-from torch import LongTensor
-from transformers.tokenization_utils_base import BatchEncoding
+from transformers.models.auto.tokenization_auto import AutoTokenizer
+
+from utils import download_and_unzip
 
 
-class SemCorDataModule(LightningDataModule):
+class WSDDataModule(LightningDataModule):
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
         parser = parent_parser.add_argument_group("Dataset")
@@ -51,47 +53,74 @@ class SemCorDataModule(LightningDataModule):
         id_to_cname: List[str]
         num_classes: int
 
-        def __init__(
-            self,
-            task: str,
-            tokenize_fn: Callable,
-            data_dir: str = "./data",
-            batch_size: int = 64,
-            num_workers: int = 4,
-        ):
-            """Data module for the Universal Dependencies framework.
+    def __init__(
+        self,
+        task: str,
+        tokenize_fn: Callable,
+        data_dir: str = "./data",
+        batch_size: int = 64,
+        num_workers: int = 4,
+    ):
+        """Data module for the Raganato Benchmark.
 
-            Args:
-                task (str): the task to train the probing classifier on (WSD).
-                tokenize_fn (Callable): a func takes sentence and returns list of tokens
-                data_dir (str): the data directory to load/store the datasets
-                batch_size (int): the batch size used by the dataloaders
-                num_workers (int): the number of subprocesses used by the dataloaders
-            """
-            super().__init__()
-            self.save_hyperparameters(ignore=["tokenize_fn"])
+        Args:
+            task (str): the task to train the probing classifier on (WSD).
+            tokenize_fn (Callable): a func takes sentence and returns list of tokens
+            data_dir (str): the data directory to load/store the datasets
+            batch_size (int): the batch size used by the dataloaders
+            num_workers (int): the number of subprocesses used by the dataloaders
+        """
+        super().__init__()
+        self.save_hyperparameters(ignore=["tokenize_fn"])
 
-            valid_tasks = ["WSD"]
-            assert task in valid_tasks, f"Task must be one of {valid_tasks}."
+        valid_tasks = ["WSD"]
+        assert task in valid_tasks, f"Task must be one of {valid_tasks}."
 
-            self.tokenize_fn = tokenize_fn
-            self.dataset_dir = os.path.join(data_dir, "semcor")
+        self.tokenize_fn = tokenize_fn
+        self.dataset_dir = os.path.join(data_dir, "wsd")
+
+        self.train_dir_name = "WSD_Training_Corpora"
+        self.eval_dir_name = "WSD_Unified_Evaluation_Datasets"
 
     def prepare_data(self) -> None:
+        """Takes care of downloading data"""
         if os.path.exists(self.dataset_dir):
             return
 
-        print("Downloading SemCor data from HuggingFace")
-        dataset = load_dataset("thesofakillers/SemCor")
+        os.makedirs(self.dataset_dir, exist_ok=True)
+        print("train data")
+        download_and_unzip(
+            f"http://lcl.uniroma1.it/wsdeval/data/{self.train_dir_name}.zip",
+            self.dataset_dir,
+            f"{self.train_dir_name}.zip",
+        )
+        print("eval data")
+        download_and_unzip(
+            f"http://lcl.uniroma1.it/wsdeval/data/{self.eval_dir_name}.zip",
+            self.dataset_dir,
+            f"{self.eval_dir_name}.zip",
+        )
 
-        # Only keep columns that are relevant to our tasks
-        keep_columns = ["lemma", "value", "lexsn", "wnsn"]
 
-        drop_columns = set(dataset["brown1"].column_names).difference(keep_columns)
-        dataset = dataset.remove_columns(drop_columns)
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    WSDDataModule.add_model_specific_args(parser)
+    parser.add_argument("--encoder_name", default="roberta-base", type=str)
+    args = parser.parse_args()
+    os.makedirs(args.data_dir, exist_ok=True)
 
-    def collate_fn(self, batch: List[Dict[str, Any]]) -> Tuple[BatchEncoding, List[LongTensor]]:
-        """Custom collate function for the per-word WSD task"""
-        encodings = self.tokenize_fn([x["lemma"] for x in batch])
-        targets = [LongTensor(x["lexsn"]) for x in batch]
-        return encodings, targets
+    tokenizer = AutoTokenizer.from_pretrained(args.encoder_name, add_prefix_space=True)
+    tokenize_fn = partial(
+        tokenizer,
+        is_split_into_words=True,
+        return_tensors="pt",
+        padding=True,
+    )
+    wsd = WSDDataModule(
+        args.task,
+        tokenize_fn,
+        args.data_dir,
+        args.batch_size,
+        args.num_workers,
+    )
+    wsd.prepare_data()
