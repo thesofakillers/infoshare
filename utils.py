@@ -1,11 +1,17 @@
 from argparse import Namespace
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 from typing import List, Optional
-
+import urllib.request
 import glob
+import os
+import zipfile
+
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 import numpy as np
 import pandas as pd
 import re
+
+
+from tqdm import tqdm
 
 TAG_REGEX = r".*\/evaluation_(\w+)\/.*"
 EXPERIMENT_REGEX = r".*\/(.+=.+)\/.*"
@@ -28,15 +34,14 @@ def get_xneutr_df(experiment_path: str, suffix_filter=None) -> pd.DataFrame:
         # Extract the neutralizer name from the path
         res = re.search(TAG_REGEX, run_path)
         neutr_tag = res.group(1)
-        
+
         if suffix_filter is not None:
             # skip this neutralising tag
             if not pattern.match(neutr_tag):
                 continue
-            
 
         neutr_tag = neutr_tag.upper()
-            
+
         # Get the data for the run from Tensorboard
         ea = EventAccumulator(run_path)
         ea.Reload()
@@ -96,7 +101,9 @@ def get_baseline_series(experiment_path: str) -> pd.Series:
     return pd.Series(scalars)
 
 
-def get_acc_drop(eval_path: str, keep_cols: Optional[List[str]] = None, suffix_filter=None) -> pd.DataFrame:
+def get_acc_drop(
+    eval_path: str, keep_cols: Optional[List[str]] = None, suffix_filter=None
+) -> pd.DataFrame:
     """Returns a dataframe with the relative accuracy drop with cross-neutralizing.
 
     Args:
@@ -130,7 +137,6 @@ def get_acc_drop(eval_path: str, keep_cols: Optional[List[str]] = None, suffix_f
     else:
         drop_indices = set()
         drop_columns = set()
-    
 
     # Explicitly add more indices/columns to hide
     for hidden in ("DEP", "APPOS"):
@@ -202,3 +208,35 @@ def select_best_mode(experiments_df: pd.DataFrame) -> str:
     config = experiments_df.loc[top_quartile.index]["avg"].nsmallest(1).index[0]
 
     return config
+
+
+# following 2 class/funtion are thanks to https://stackoverflow.com/a/53877507/9889508
+class DownloadProgressBar(tqdm):
+    def update_to(self, b=1, bsize=1, tsize=None):
+        if tsize is not None:
+            self.total = tsize
+        self.update(b * bsize - self.n)
+
+
+def download_url(url, output_path):
+    with DownloadProgressBar(
+        unit="B",
+        unit_scale=True,
+        miniters=1,
+        desc=url.split("/")[-1],
+    ) as t:
+        urllib.request.urlretrieve(
+            url,
+            filename=output_path,
+            reporthook=t.update_to,
+        )
+
+
+def download_and_unzip(url, download_dir, target_filename):
+
+    file_path = os.path.join(download_dir, target_filename)
+    print("Downloading...")
+    download_url(url, file_path)
+    print("Unzipping...")
+    with zipfile.ZipFile(file_path, "r") as zip_ref:
+        zip_ref.extractall(download_dir)
