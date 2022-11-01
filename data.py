@@ -86,6 +86,7 @@ class UDDataModule(LightningDataModule):
 
     def prepare_data(self):
         if os.path.exists(self.dataset_dir):
+            print("Dataset already downloaded.")
             return
 
         print("Downloading UniversalDependencies data from HuggingFace")

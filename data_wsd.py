@@ -85,6 +85,7 @@ class WSDDataModule(LightningDataModule):
     def prepare_data(self) -> None:
         """Takes care of downloading data"""
         if os.path.exists(self.dataset_dir):
+            print("Dataset already downloaded.")
             return
 
         os.makedirs(self.dataset_dir, exist_ok=True)
