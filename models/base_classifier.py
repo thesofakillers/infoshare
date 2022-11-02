@@ -237,10 +237,10 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
     # Logging & metrics #
     #####################
 
-    def log_metrics(self, processed_batch: Dict, stage: str):
+    def log_metrics(self, processed_batch: Dict, stage: str, prefix: str = ""):
         batch_logits = processed_batch["logits"]
         targets = processed_batch["targets"]
-        self.log_accuracy(batch_logits, targets, stage=stage)
+        self.log_accuracy(batch_logits, targets, stage=stage, prefix=prefix)
 
     def log_accuracy(self, logits: Tensor, targets: Tensor, stage: str, prefix: str = ""):
         batch_size = len(logits)
