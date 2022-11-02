@@ -60,7 +60,7 @@ def train(args: Namespace):
 
         # Ignore "root" predictions for the loss/accuracy in the DEP task
         if args.task == "DEP":
-            model_args["ignore_idx"] = ud.cname_to_id["root"]
+            model_args["ignore_id"] = ud.cname_to_id["root"]
 
         model = model_class(**model_args)
 

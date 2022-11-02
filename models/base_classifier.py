@@ -39,7 +39,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         n_classes: int,
         class_map: List[str],
         lr: float = 1e-3,
-        ignore_idx: Optional[int] = None,
+        ignore_id: Optional[int] = None,
         **kwargs,
     ):
         """Abstract classifier class for probing tasks.
@@ -49,7 +49,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
             n_classes (int): the number of target classes
             class_map (List[str]): the mapping of class ids to class names
             lr (float): the learning rate for the classifier
-            ignore_idx (int): the index to ignore in the target vector
+            ignore_id (int): the id to ignore in the target vector
         """
         super().__init__()
         self.save_hyperparameters()
@@ -134,7 +134,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
 
         # Pad & mask target values to use with CE
         targets_padded = pad_sequence(targets, batch_first=True, padding_value=-1)
-        targets_padded[targets_padded == self.hparams.ignore_idx] = -1
+        targets_padded[targets_padded == self.hparams.ignore_id] = -1
 
         # Calculate & log CrossEntropy loss
         # NOTE: CE expects input shape (N, C, S) while logits' shape is (N, S, C)
@@ -273,7 +273,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
                     target=targets[i],
                     average=average,
                     num_classes=logits.shape[-1],
-                    ignore_index=self.hparams.ignore_idx,
+                    ignore_index=self.hparams.ignore_id,
                 )
                 for i in range(len(targets))
             ]
