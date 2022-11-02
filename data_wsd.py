@@ -1,21 +1,20 @@
 "Raganati et al. (2017) data for WSD task"
-from functools import partial
-import os
 from argparse import ArgumentParser
-from typing import Callable, Optional, Dict, List, Tuple, Any
-import xml.etree.ElementTree as ET
-
-import datasets
 from datasets.arrow_dataset import Dataset
+from functools import partial
 from pytorch_lightning import LightningDataModule
 from torch import LongTensor
 from torch.utils.data import DataLoader
 from transformers.models.auto.tokenization_auto import AutoTokenizer
-import numpy as np
-import pandas as pd
 from transformers.tokenization_utils_base import BatchEncoding
-
+from typing import Callable, Optional, Dict, List, Tuple, Any
 from utils import download_and_unzip
+
+import datasets
+import numpy as np
+import os
+import pandas as pd
+import xml.etree.ElementTree as ET
 
 
 class WSDDataModule(LightningDataModule):
@@ -49,14 +48,19 @@ class WSDDataModule(LightningDataModule):
         )
         return parent_parser
 
-        # Declare variables that will be initialized later
-        train: Dataset
-        val: Dataset
-        test: Dataset
-        debug: Dataset
-        cname_to_id: Optional[Dict[str, int]]
-        id_to_cname: List[str]
-        num_classes: int
+    # Declare dataset fields
+    semcor: Dataset
+    semeval2007: Dataset
+    semeval2013: Dataset
+    semeval2015: Dataset
+    senseval2: Dataset
+    senseval3: Dataset
+    wsd_debug: Dataset
+    # Declare label maps
+    pos_id2cname: List[str]
+    pos_cname2id: Dict[str, int]
+    sense_id2cname: List[str]
+    sense_cname2id: Dict[str, int]
 
     def __init__(
         self,
@@ -87,6 +91,27 @@ class WSDDataModule(LightningDataModule):
         self.train_dir = "WSD_Training_Corpora"
         self.eval_dir = "WSD_Unified_Evaluation_Datasets"
 
+        self.POS_TAGS = [
+            "NOUN",
+            "PUNCT",
+            "ADP",
+            "NUM",
+            "SYM",
+            "SCONJ",
+            "ADJ",
+            "PART",
+            "DET",
+            "CCONJ",
+            "PROPN",
+            "PRON",
+            "X",
+            "_",
+            "ADV",
+            "INTJ",
+            "VERB",
+            "AUX",
+        ]
+
     def prepare_data(self) -> None:
         """Takes care of downloading data"""
         if os.path.exists(self.data_dir):
@@ -94,13 +119,13 @@ class WSDDataModule(LightningDataModule):
             return
 
         os.makedirs(self.data_dir, exist_ok=True)
-        print("train data")
+        print("Downloading train data")
         download_and_unzip(
             f"http://lcl.uniroma1.it/wsdeval/data/{self.train_dir}.zip",
             self.data_dir,
             f"{self.train_dir}.zip",
         )
-        print("eval data")
+        print("Downloading eval data")
         download_and_unzip(
             f"http://lcl.uniroma1.it/wsdeval/data/{self.eval_dir}.zip",
             self.data_dir,
@@ -108,7 +133,7 @@ class WSDDataModule(LightningDataModule):
         )
 
     def setup(self, stage: Optional[str] = None):
-        """sets up data for our model"""
+        """Sets up data for our model"""
         # ignore stage and setup all datasets, since we need id2cname from train for all
         self.semcor = self.wsd_dset(os.path.join(self.data_dir, self.train_dir, "SemCor"), True)
         self.semeval2007 = self.wsd_dset(os.path.join(self.data_dir, self.eval_dir, "semeval2007"))
@@ -120,7 +145,14 @@ class WSDDataModule(LightningDataModule):
             os.path.join(self.data_dir, self.train_dir, "SemCor")
         ).select(list(range(50)))
 
-    def wsd_dset(self, dataset_path, is_train=False):
+    def init_label_maps(self, senses: List[str]):
+        """Initialize the label maps used by the dataloaders in the collate_fn"""
+        self.pos_id2cname = self.POS_TAGS
+        self.pos_cname2id = {cname: i for i, cname in enumerate(self.pos_id2cname)}
+        self.sense_id2cname = senses
+        self.sense_cname2id = {cname: i for i, cname in enumerate(self.sense_id2cname)}
+
+    def wsd_dset(self, dataset_path: str, is_train: bool = False) -> Dataset:
         """
         Given path to Raganato benchmark XML and gold labels
         Returns a torch dataset or hf dataset
@@ -130,43 +162,29 @@ class WSDDataModule(LightningDataModule):
         print(f"Creating dataset for {dataset_name}")
         if os.path.exists(processed_path):
             print("Dataset already processed. Loading from disk")
-            return datasets.load_from_disk(processed_path)
-        # pass
-        with open(
-            f"{dataset_path}/{dataset_name.lower()}.gold.key.txt",
-            "r",
-        ) as f:
+            dataset = datasets.load_from_disk(processed_path)
+
+            # initialize label maps during train set
+            if is_train:
+                senses = dataset.features["senses"].feature.names
+                self.init_label_maps(senses)
+
+            return dataset
+
+        gold_path = os.path.join(dataset_path, f"{dataset_name.lower()}.gold.key.txt")
+        with open(gold_path, "r") as f:
             gold_labels = f.readlines()
-        gold_labels = [tuple(line.strip().split(" ")[:2]) for line in gold_labels]
-        gold_labels = pd.DataFrame(gold_labels, columns=["token_id", "label"])
-        gold_labels = gold_labels.set_index("token_id")
+            gold_labels = [tuple(line.strip().split(" ")[:2]) for line in gold_labels]
+            gold_labels = pd.DataFrame(gold_labels, columns=["token_id", "label"])
+            gold_labels = gold_labels.set_index("token_id")
+
         # label maps populated during training
         if is_train:
-            self.pos_id2cname = [
-                "NOUN",
-                "PUNCT",
-                "ADP",
-                "NUM",
-                "SYM",
-                "SCONJ",
-                "ADJ",
-                "PART",
-                "DET",
-                "CCONJ",
-                "PROPN",
-                "PRON",
-                "X",
-                "_",
-                "ADV",
-                "INTJ",
-                "VERB",
-                "AUX",
-            ]
-            self.pos_cname2id = {cname: i for i, cname in enumerate(self.pos_id2cname)}
-            self.sense_id2cname = ["unk"] + np.random.permutation(
+            senses = ["unk"] + np.random.RandomState(seed=42).permutation(
                 gold_labels.label.unique()
             ).tolist()
-            self.sense_cname2id = {cname: i for i, cname in enumerate(self.sense_id2cname)}
+            self.init_label_maps(senses)
+
         # parse XML
         data_tree = ET.parse(f"{dataset_path}/{dataset_name.lower()}.data.xml")
         data_root = data_tree.getroot()
@@ -186,14 +204,16 @@ class WSDDataModule(LightningDataModule):
                         idxs.append(idx)
                         pos.append(self.pos_cname2id[word.get("pos")])
                         senses.append(
-                            self.sense_cname2id.get(gold_labels.loc[word.get("id")].item(), 0)
+                            self.sense_cname2id.get(
+                                gold_labels.loc[word.get("id")].item(), 0
+                            )  # unk's position in mapping is 0
                         )
                 data.append((sentence.get("id"), sent_words, sent_lemmas, idxs, senses, pos))
         # convert to dataframe
         data_df = pd.DataFrame(data, columns=["id", "tokens", "lemmas", "idxs", "senses", "pos"])
         data_df = data_df.set_index("id")
         # and finally to hf dataset
-        dataset = datasets.Dataset.from_pandas(
+        dataset = Dataset.from_pandas(
             data_df,
             features=datasets.Features(
                 {
@@ -203,7 +223,7 @@ class WSDDataModule(LightningDataModule):
                     "idxs": datasets.Sequence(datasets.Value("int64")),
                     "senses": datasets.Sequence(datasets.ClassLabel(names=self.sense_id2cname)),
                     "pos": datasets.Sequence(
-                        datasets.ClassLabel(num_classes=18, names=self.pos_id2cname)
+                        datasets.ClassLabel(num_classes=len(self.POS_TAGS), names=self.pos_id2cname)
                     ),
                 }
             ),
@@ -216,13 +236,18 @@ class WSDDataModule(LightningDataModule):
         if self.hparams.task == "WSD":
             return self.wsd_collate_fn
 
-    def wsd_collate_fn(self, batch: List[Dict[str, Any]]) -> Tuple[BatchEncoding, List[LongTensor]]:
+    def wsd_collate_fn(
+        self, batch: List[Dict[str, Any]]
+    ) -> Tuple[BatchEncoding, List[LongTensor], List[LongTensor], List[LongTensor], List[str]]:
         encodings = self.tokenize_fn([x["tokens"] for x in batch])
-        targets = [LongTensor(x["senses"]) for x in batch]
-        idxs = [LongTensor(x["idxs"]) for x in batch]
-        pos = [LongTensor(x["pos"]) for x in batch]
+        target_senses = [LongTensor(x["senses"]) for x in batch]
+        target_idxs = [LongTensor(x["idxs"]) for x in batch]
+        target_pos = [LongTensor(x["pos"]) for x in batch]
         lemmas = [x["lemmas"] for x in batch]
-        return encodings, targets, idxs, pos, lemmas
+        # for the following lists:
+        # - len(encodings) > len(lemmas)  -- due to tokenization
+        # - len(target_senses) == len(target_idxs) == len(target_pos)
+        return encodings, target_senses, target_idxs, target_pos, lemmas
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(
@@ -254,7 +279,7 @@ class WSDDataModule(LightningDataModule):
                 self.semeval2013,
                 self.semeval2015,
                 self.senseval2,
-                self.senseval,
+                self.senseval3,
             ]
         ]
 
