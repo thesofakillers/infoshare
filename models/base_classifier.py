@@ -142,7 +142,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         self.log(f"{stage}_loss", loss, batch_size=batch_size)
 
         # Calculate & log average accuracy
-        self.log_accuracy(batch_logits, targets, stage=stage)
+        self.log_metrics(processed_batch, stage)
 
         # Postprocess batch to save tag centroids
         if stage == "val":
@@ -236,6 +236,11 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
     #####################
     # Logging & metrics #
     #####################
+
+    def log_metrics(self, processed_batch: Dict, stage: str):
+        batch_logits = processed_batch["logits"]
+        targets = processed_batch["targets"]
+        self.log_accuracy(batch_logits, targets, stage=stage)
 
     def log_accuracy(self, logits: Tensor, targets: Tensor, stage: str, prefix: str = ""):
         batch_size = len(logits)
