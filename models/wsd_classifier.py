@@ -60,7 +60,7 @@ class WSDClassifier(BaseClassifier):
             self.log(f"{prefix}{stage}_acc_{pos_name}", acc_i, batch_size=batch_size)
 
     @torch.no_grad()
-    def calc_ave_f1(logits, targets, average: str = "micro"):
+    def calc_ave_f1(self, logits, targets, average: str = "micro"):
         # Extract sequence length from number of senses to predict
         sequence_lengths = [len(_) for _ in targets]
 
