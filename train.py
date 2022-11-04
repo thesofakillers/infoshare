@@ -1,5 +1,5 @@
 from argparse import ArgumentParser, Namespace
-from data import UDDataModule
+from data import UDDataModule, WSDDataModule
 from functools import partial
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
@@ -22,24 +22,39 @@ def train(args: Namespace):
     tokenizer = AutoTokenizer.from_pretrained(args.encoder_name, add_prefix_space=True)
     tokenize_fn = partial(tokenizer, is_split_into_words=True, return_tensors="pt", padding=True)
 
-    # Load the PL datamodule
-    ud = UDDataModule(
-        args.task,
-        args.treebank_name,
-        tokenize_fn,
-        args.data_dir,
-        args.batch_size,
-        args.num_workers,
-    )
-
-    ud.prepare_data()
-    ud.setup("fit")
+    # Load the appropriate datamodule
+    if args.task in {"POS", "DEP"}:
+        metric = "acc"
+        datamodule = UDDataModule(
+            args.task,
+            args.treebank_name,
+            tokenize_fn,
+            args.data_dir,
+            args.batch_size,
+            args.num_workers,
+        )
+    elif args.task == "WSD":
+        metric = "f1"
+        datamodule = WSDDataModule(
+            args.task,
+            tokenize_fn,
+            args.data_dir,
+            args.batch_size,
+            args.num_workers,
+        )
+    datamodule.prepare_data()
+    datamodule.setup("fit")
 
     # Load the model class constructor
     if args.task == "DEP":
         model_class = models.DEPClassifier
     elif args.task == "POS":
         model_class = models.POSClassifier
+    elif args.task == "WSD":
+        model_class = models.WSDClassifier
+        # additional args necessary
+        args.pos_map = datamodule.pos_id2cname
+        args.lemma_to_sense_ids = datamodule.lemma_to_sense_ids
     else:
         raise Exception(f"Unsupported task: {args.task}")
 
@@ -53,14 +68,14 @@ def train(args: Namespace):
     else:
         model_args = {
             "n_hidden": bert.hidden_size,
-            "n_classes": ud.num_classes,
-            "class_map": ud.id_to_cname,
+            "n_classes": datamodule.num_classes,
+            "class_map": datamodule.id_to_cname,
             **vars(args),
         }
 
         # Ignore "root" predictions for the loss/accuracy in the DEP task
         if args.task == "DEP":
-            model_args["ignore_id"] = ud.cname_to_id["root"]
+            model_args["ignore_id"] = datamodule.cname_to_id["root"]
 
         model = model_class(**model_args)
 
@@ -74,7 +89,7 @@ def train(args: Namespace):
     )
 
     # Configure the callbacks
-    callback_cfg = {"monitor": "val_acc", "mode": "max"}
+    callback_cfg = {"monitor": f"val_{metric}", "mode": "max"}
     es_cb = EarlyStopping(**callback_cfg)  # TODO: maybe setup other early stopping parameters
     ckpt_cb = ModelCheckpoint(save_top_k=1, **callback_cfg)
 
@@ -94,7 +109,7 @@ def train(args: Namespace):
         trainer_args["ckpt_path"] = args.checkpoint
 
     # Fit the model
-    trainer.fit(model, ud, **trainer_args)
+    trainer.fit(model, datamodule, **trainer_args)
 
 
 if __name__ == "__main__":
