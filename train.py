@@ -55,6 +55,7 @@ def train(args: Namespace):
         # additional args necessary
         args.pos_map = datamodule.pos_id2cname
         args.lemma_to_sense_ids = datamodule.lemma_to_sense_ids
+        args.compute_centroids = False
     else:
         raise Exception(f"Unsupported task: {args.task}")
 
