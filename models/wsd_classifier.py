@@ -2,7 +2,7 @@ from .base_classifier import BaseClassifier
 from torch import nn, Tensor, LongTensor
 from torch.nn.utils.rnn import pad_sequence
 from transformers import BatchEncoding
-from typing import Tuple, Dict, List, Union
+from typing import Set, Tuple, Dict, List, Union
 
 import torch
 import torchmetrics.functional as TF
@@ -41,9 +41,18 @@ class WSDClassifier(BaseClassifier):
         batch_logits = processed_batch["logits"]
         batch_targets = processed_batch["targets"]
         batch_pos = processed_batch["pos"]
+        batch_lemmas = processed_batch["lemmas"]
 
         batch_size = len(batch_logits)
-        f1_avg = self.calc_avg_f1(batch_logits, batch_targets, batch_pos)
+        all_sense_ids = set(range(self.hparams.n_classes))
+
+        f1_avg = self.calc_avg_f1(
+            batch_logits,
+            batch_targets,
+            batch_pos,
+            batch_lemmas,
+            all_sense_ids,
+        )
         self.log(f"{stage}_f1", f1_avg, batch_size=batch_size)
 
         if stage != "test":
@@ -51,7 +60,14 @@ class WSDClassifier(BaseClassifier):
             return
 
         # calculate & log average f1 per-pos tag
-        f1_per_pos = self.calc_avg_f1(batch_logits, batch_targets, batch_pos, average="none")
+        f1_per_pos = self.calc_avg_f1(
+            batch_logits,
+            batch_targets,
+            batch_pos,
+            batch_lemmas,
+            all_sense_ids,
+            average="none",
+        )
         for i, f1_i in enumerate(f1_per_pos):
             pos_name = self.hparams.pos_map[i]
             self.log(f"{prefix}{stage}_acc_{pos_name}", f1_i, batch_size=batch_size)
@@ -62,14 +78,15 @@ class WSDClassifier(BaseClassifier):
         batch_logits: Tensor,
         batch_targets: List[LongTensor],
         batch_pos: List[LongTensor],
+        batch_lemmas: List[List[str]],
+        all_sense_ids: Set[int],
         average: str = "micro",
     ):
+        """Warning: this function is untested"""
         n_pos_tags = len(self.hparams.pos_map)
         # Extract sequence length from number of senses to predict
         seq_lens = [len(_) for _ in batch_targets]
 
-        # TODO: only consider senses from current lemma in evaluation/inference
-        ## WARNING: untested code
         batch_logits_per_pos = [
             torch.vstack(
                 [
@@ -79,6 +96,23 @@ class WSDClassifier(BaseClassifier):
             )
             for pos_id in range(n_pos_tags)
         ]
+
+        batch_logits_per_pos = []
+        for seq_logits in range(n_pos_tags):
+            logits_per_pos = []
+            # go through batch
+            for logits, pos, s_len, lemmas in zip(batch_logits, batch_pos, seq_lens, batch_lemmas):
+                seq_logits = logits[:s_len]
+                # go through sequence
+                for i, lemma in lemmas:
+                    # set difference, to get the ids of irrelevant senses for lemma
+                    non_lemma_ids = all_sense_ids - set(self.hparams.lemma_to_sense_ids[lemma])
+                    # make them irrelevant by masking their logits out
+                    seq_logits[i, non_lemma_ids] = -torch.inf
+                # only keep logits for current pos
+                cur_pos_logits = seq_logits[pos == pos_id]
+                logits_per_pos.append(cur_pos_logits)
+            batch_logits_per_pos.append(torch.vstack(logits_per_pos))
 
         batch_senses_per_pos = [
             torch.cat([senses[pos == pos_id] for senses, pos in zip(batch_targets, batch_pos)])
