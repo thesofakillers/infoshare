@@ -16,7 +16,11 @@ class WSDClassifier(BaseClassifier):
             nn.Linear(n_hidden, n_classes),
         )
 
-    def forward(self, encoded_input: BatchEncoding, salient_idxs: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(
+        self,
+        encoded_input: BatchEncoding,
+        salient_idxs: Tensor,
+    ) -> Tuple[Tensor, Tensor]:
         embeddings = self.bert(encoded_input)
         # need to index the (padded) embeddings with salient idxs
         embeddings = [emb[idx] for idx, emb in zip(salient_idxs, embeddings)]
@@ -46,28 +50,20 @@ class WSDClassifier(BaseClassifier):
         batch_size = len(batch_logits)
         all_sense_ids = set(range(self.hparams.n_classes))
 
-        f1_avg = self.calc_avg_f1(
-            batch_logits,
-            batch_targets,
-            batch_pos,
-            batch_lemmas,
-            all_sense_ids,
+        # NOTE: this is a shortcut i thought of - compute f1 per pos. then to get
+        # average f1 we can just average that? previously we did calc_avg_f1 twice, once
+        # with and once without averaging. I've changed default average to 'none'
+        f1_per_pos = self.calc_avg_f1(
+            batch_logits, batch_targets, batch_pos, batch_lemmas, all_sense_ids
         )
+        f1_avg = f1_per_pos.mean()  # this is part of the shortcut
         self.log(f"{stage}_f1", f1_avg, batch_size=batch_size)
 
         if stage != "test":
             # No need to log per-pos-tag accuracy for train and val
             return
 
-        # calculate & log average f1 per-pos tag
-        f1_per_pos = self.calc_avg_f1(
-            batch_logits,
-            batch_targets,
-            batch_pos,
-            batch_lemmas,
-            all_sense_ids,
-            average="none",
-        )
+        # log average f1 per-pos tag
         for i, f1_i in enumerate(f1_per_pos):
             pos_name = self.hparams.pos_map[i]
             self.log(f"{prefix}{stage}_acc_{pos_name}", f1_i, batch_size=batch_size)
@@ -80,7 +76,7 @@ class WSDClassifier(BaseClassifier):
         batch_pos: List[LongTensor],
         batch_lemmas: List[List[str]],
         all_sense_ids: Set[int],
-        average: str = "micro",
+        average: str = "none",
     ):
         """Warning: this function is untested"""
         n_pos_tags = len(self.hparams.pos_map)
@@ -98,15 +94,22 @@ class WSDClassifier(BaseClassifier):
         ]
 
         batch_logits_per_pos = []
-        for seq_logits in range(n_pos_tags):
+        for pos_id in range(n_pos_tags):
             logits_per_pos = []
             # go through batch
-            for logits, pos, s_len, lemmas in zip(batch_logits, batch_pos, seq_lens, batch_lemmas):
+            for logits, pos, s_len, lemmas in zip(
+                batch_logits,
+                batch_pos,
+                seq_lens,
+                batch_lemmas,
+            ):
                 seq_logits = logits[:s_len]
                 # go through sequence
                 for i, lemma in lemmas:
                     # set difference, to get the ids of irrelevant senses for lemma
-                    non_lemma_ids = all_sense_ids - set(self.hparams.lemma_to_sense_ids[lemma])
+                    non_lemma_ids = all_sense_ids - set(
+                        self.hparams.lemma_to_sense_ids[lemma],
+                    )
                     # make them irrelevant by masking their logits out
                     seq_logits[i, non_lemma_ids] = -torch.inf
                 # only keep logits for current pos
@@ -115,7 +118,15 @@ class WSDClassifier(BaseClassifier):
             batch_logits_per_pos.append(torch.vstack(logits_per_pos))
 
         batch_senses_per_pos = [
-            torch.cat([senses[pos == pos_id] for senses, pos in zip(batch_targets, batch_pos)])
+            torch.cat(
+                [
+                    senses[pos == pos_id]
+                    for senses, pos in zip(
+                        batch_targets,
+                        batch_pos,
+                    )
+                ]
+            )
             for pos_id in range(n_pos_tags)
         ]
 
