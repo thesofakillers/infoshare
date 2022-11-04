@@ -169,21 +169,17 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
 
     def test_step(self, batch: Tuple, _: Tensor):
         processed_batch = self.process_batch(batch)
-        embs = processed_batch["embeddings"]
-        logits = processed_batch["logits"]
-        targets = processed_batch["targets"]
 
         if not self.has_neutralizer:
             # Perform standard testing
-            self.log_accuracy(logits, targets, stage="test")
+            self.log_metrics(processed_batch, stage="test")
         else:
             # Perform the testing on neutralized embeddings
-            neutral_embs = self.subtract_centroid(embs)
+            neutral_embs = self.subtract_centroid(processed_batch["embeddings"])
             processed_batch["embeddings"] = neutral_embs
-            neutral_logits = self.classifier(neutral_embs)
-            self.log_accuracy(
-                neutral_logits,
-                targets,
+            processed_batch["logits"] = self.classifier(neutral_embs)
+            self.log_metrics(
+                processed_batch,
                 stage="test",
                 prefix=f"{self.neutralizer}/",
             )
