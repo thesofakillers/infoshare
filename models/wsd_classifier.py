@@ -9,6 +9,15 @@ import torchmetrics.functional as TF
 
 
 class WSDClassifier(BaseClassifier):
+    def __init__(
+        self,
+        pos_map: List[str],
+        lemma_to_sense_ids: Dict[str, List[int]],
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.save_hyperparameters()
+
     def get_classifier_head(self, n_hidden: int, n_classes: int) -> nn.Module:
         return nn.Sequential(
             nn.Linear(n_hidden, n_hidden),
