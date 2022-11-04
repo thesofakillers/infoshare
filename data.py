@@ -236,8 +236,10 @@ class WSDDataModule(BaseDataModule):
     # Declare label maps
     pos_id2cname: List[str]
     pos_cname2id: Dict[str, int]
-    sense_id2cname: List[str]
-    sense_cname2id: Dict[str, int]
+    id_to_cname: List[str]
+    cname_to_id: Dict[str, int]
+    lemma_to_sense_ids Dict[str, List[int]]
+    num_classes: int
 
     def __init__(
         self,
@@ -329,10 +331,11 @@ class WSDDataModule(BaseDataModule):
         senses: List[str] = ["unk"] + np.random.RandomState(seed=42).permutation(
             gold_labels.label.unique()
         ).tolist()
-        self.sense_id2cname = senses
-        self.sense_cname2id = {cname: i for i, cname in enumerate(self.sense_id2cname)}
-        self.sense_cname2id = defaultdict(lambda: 0, self.sense_cname2id)
-        gold_labels["sense_id"] = gold_labels.label.map(self.sense_cname2id)
+        self.id_to_cname = senses
+        self.num_classes = len(senses)
+        self.cname_to_id = {cname: i for i, cname in enumerate(self.id_to_cname)}
+        self.cname_to_id = defaultdict(lambda: 0, self.cname_to_id)
+        gold_labels["sense_id"] = gold_labels.label.map(self.cname_to_id)
         gold_labels["lemma"] = gold_labels["label"].str.split("%").str[0]
         self.lemma_to_sense_ids = gold_labels.groupby("lemma")["sense_id"].apply(list).to_dict()
         self.lemma_to_sense_ids = defaultdict(lambda: [0], self.lemma_to_sense_ids)
@@ -381,7 +384,7 @@ class WSDDataModule(BaseDataModule):
                         sent_lemmas.append(word.get("lemma"))
                         idxs.append(idx)
                         pos.append(self.pos_cname2id[word.get("pos")])
-                        senses.append(self.sense_cname2id[gold_labels["label"].loc[word.get("id")]])
+                        senses.append(self.cname_to_id[gold_labels["label"].loc[word.get("id")]])
                 data.append((sentence.get("id"), sent_words, sent_lemmas, idxs, senses, pos))
         # convert to dataframe
         data_df = pd.DataFrame(data, columns=["id", "tokens", "lemmas", "idxs", "senses", "pos"])
@@ -395,7 +398,7 @@ class WSDDataModule(BaseDataModule):
                     "tokens": Sequence(Value("string")),
                     "lemmas": Sequence(Value("string")),
                     "idxs": Sequence(Value("int64")),
-                    "senses": Sequence(ClassLabel(names=self.sense_id2cname)),
+                    "senses": Sequence(ClassLabel(names=self.id_to_cname)),
                     "pos": Sequence(
                         ClassLabel(num_classes=len(self.POS_TAGS), names=self.pos_id2cname)
                     ),
