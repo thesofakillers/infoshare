@@ -468,6 +468,9 @@ class WSDDataModule(BaseDataModule):
 
 if __name__ == "__main__":
     # if for whatever reason you want to setup data separately
+    from functools import partial
+    from transformers import AutoTokenizer
+
     parser = ArgumentParser("Setup data beforehand")
     WSDDataModule.add_model_specific_args(parser)
     UDDataModule.add_model_specific_args(parser)
