@@ -40,6 +40,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         class_map: List[str],
         lr: float = 1e-3,
         ignore_id: Optional[int] = None,
+        compute_centroids: bool = True,
         **kwargs,
     ):
         """Abstract classifier class for probing tasks.
@@ -50,6 +51,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
             class_map (List[str]): the mapping of class ids to class names
             lr (float): the learning rate for the classifier
             ignore_id (int): the id to ignore in the target vector
+            compute_centroids (bool): whether to compute class centroids. Default True.
         """
         super().__init__()
         self.save_hyperparameters()
@@ -144,8 +146,8 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         # Calculate & log average accuracy
         self.log_metrics(processed_batch, stage)
 
-        # Postprocess batch to save tag centroids
-        if stage == "val":
+        # Postprocess batch to save tag centroids (if we want them)
+        if stage == "val" and self.hparams.compute_centroids:
             self.postprocess_val_batch(batch_embs, batch_logits, targets)
 
         return loss
