@@ -145,12 +145,18 @@ class WSDDataModule(LightningDataModule):
             os.path.join(self.data_dir, self.train_dir, "SemCor")
         ).select(list(range(50)))
 
-    def init_label_maps(self, senses: List[str]):
+    def init_label_maps(self, gold_labels: pd.core.frame.DataFrame):
         """Initialize the label maps used by the dataloaders in the collate_fn"""
         self.pos_id2cname = self.POS_TAGS
         self.pos_cname2id = {cname: i for i, cname in enumerate(self.pos_id2cname)}
+        senses: List[str] = ["unk"] + np.random.RandomState(seed=42).permutation(
+            gold_labels.label.unique()
+        ).tolist()
         self.sense_id2cname = senses
         self.sense_cname2id = {cname: i for i, cname in enumerate(self.sense_id2cname)}
+        gold_labels["sense_id"] = gold_labels.label.map(self.sense_cname2id)
+        gold_labels["lemma"] = gold_labels["label"].str.split("%").str[0]
+        self.lemma_to_sense_ids = gold_labels.groupby("lemma")["sense_id"].apply(list).to_dict()
 
     def wsd_dset(self, dataset_path: str, is_train: bool = False) -> Dataset:
         """
@@ -160,31 +166,24 @@ class WSDDataModule(LightningDataModule):
         processed_path = os.path.join(dataset_path, "processed")
         dataset_name = dataset_path.split("/")[-1]
         print(f"Creating dataset for {dataset_name}")
-        if os.path.exists(processed_path):
-            print("Dataset already processed. Loading from disk")
-            dataset = datasets.load_from_disk(processed_path)
-
-            # initialize label maps during train set
-            if is_train:
-                senses = dataset.features["senses"].feature.names
-                self.init_label_maps(senses)
-
-            return dataset
 
         gold_path = os.path.join(dataset_path, f"{dataset_name.lower()}.gold.key.txt")
         with open(gold_path, "r") as f:
             gold_labels = f.readlines()
-            gold_labels = [tuple(line.strip().split(" ")[:2]) for line in gold_labels]
-            gold_labels = pd.DataFrame(gold_labels, columns=["token_id", "label"])
-            gold_labels = gold_labels.set_index("token_id")
+        gold_labels = [tuple(line.strip().split(" ")[:2]) for line in gold_labels]
+        gold_labels = pd.DataFrame(gold_labels, columns=["token_id", "label"])
+        gold_labels = gold_labels.set_index("token_id")
 
         # label maps populated during training
         if is_train:
-            senses = ["unk"] + np.random.RandomState(seed=42).permutation(
-                gold_labels.label.unique()
-            ).tolist()
-            self.init_label_maps(senses)
+            self.init_label_maps(gold_labels)
 
+        # don't need to do the remaining processing if we've already done it
+        if os.path.exists(processed_path):
+            print("Dataset already processed. Loading from disk")
+            dataset = datasets.load_from_disk(processed_path)
+
+            return dataset
         # parse XML
         data_tree = ET.parse(f"{dataset_path}/{dataset_name.lower()}.data.xml")
         data_root = data_tree.getroot()
@@ -205,7 +204,7 @@ class WSDDataModule(LightningDataModule):
                         pos.append(self.pos_cname2id[word.get("pos")])
                         senses.append(
                             self.sense_cname2id.get(
-                                gold_labels.loc[word.get("id")].item(), 0
+                                gold_labels["label"].loc[word.get("id")], 0
                             )  # unk's position in mapping is 0
                         )
                 data.append((sentence.get("id"), sent_words, sent_lemmas, idxs, senses, pos))
