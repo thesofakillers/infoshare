@@ -9,7 +9,7 @@ from transformers.models.auto.tokenization_auto import AutoTokenizer
 from transformers.tokenization_utils_base import BatchEncoding
 from typing import Callable, Optional, Dict, List, Tuple, Any
 from utils import download_and_unzip
-
+from collections import defaultdict
 import datasets
 import numpy as np
 import os
@@ -154,9 +154,11 @@ class WSDDataModule(LightningDataModule):
         ).tolist()
         self.sense_id2cname = senses
         self.sense_cname2id = {cname: i for i, cname in enumerate(self.sense_id2cname)}
+        self.sense_cname2id = defaultdict(lambda: 0, self.sense_cname2id)
         gold_labels["sense_id"] = gold_labels.label.map(self.sense_cname2id)
         gold_labels["lemma"] = gold_labels["label"].str.split("%").str[0]
         self.lemma_to_sense_ids = gold_labels.groupby("lemma")["sense_id"].apply(list).to_dict()
+        self.lemma_to_sense_ids = defaultdict(lambda: [0], self.lemma_to_sense_ids)
 
     def wsd_dset(self, dataset_path: str, is_train: bool = False) -> Dataset:
         """
@@ -202,11 +204,7 @@ class WSDDataModule(LightningDataModule):
                         sent_lemmas.append(word.get("lemma"))
                         idxs.append(idx)
                         pos.append(self.pos_cname2id[word.get("pos")])
-                        senses.append(
-                            self.sense_cname2id.get(
-                                gold_labels["label"].loc[word.get("id")], 0
-                            )  # unk's position in mapping is 0
-                        )
+                        senses.append(self.sense_cname2id[gold_labels["label"].loc[word.get("id")]])
                 data.append((sentence.get("id"), sent_words, sent_lemmas, idxs, senses, pos))
         # convert to dataframe
         data_df = pd.DataFrame(data, columns=["id", "tokens", "lemmas", "idxs", "senses", "pos"])
