@@ -32,8 +32,9 @@ class WSDClassifier(BaseClassifier):
             "embeddings": embeddings,
             "logits": logits,
             "targets": targets,
-            "pos": pos,
-            "lemmas": lemmas,
+            # filtering out non-target pos and lemmas
+            "pos": [pos_tag[idx] for idx, pos_tag in zip(idxs, pos)],
+            "lemmas": [lemma[idx] for idx, lemma in zip(idxs, lemmas)],
         }
 
     def log_metrics(self, processed_batch: Dict, stage: str, prefix: str = ""):
