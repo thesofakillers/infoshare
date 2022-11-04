@@ -198,9 +198,9 @@ class WSDDataModule(LightningDataModule):
                 pos = []
                 for idx, word in enumerate(sentence):
                     sent_words.append(word.text)
-                    sent_lemmas.append(word.get("lemma"))
                     if word.tag == "instance":
                         # keep track of where instances occur
+                        sent_lemmas.append(word.get("lemma"))
                         idxs.append(idx)
                         pos.append(self.pos_cname2id[word.get("pos")])
                         senses.append(
@@ -243,11 +243,11 @@ class WSDDataModule(LightningDataModule):
         target_senses = [LongTensor(x["senses"]) for x in batch]
         target_idxs = [LongTensor(x["idxs"]) for x in batch]
         target_pos = [LongTensor(x["pos"]) for x in batch]
-        lemmas = [x["lemmas"] for x in batch]
+        target_lemmas = [x["lemmas"] for x in batch]
         # for the following lists:
-        # - len(encodings) > len(lemmas)  -- due to tokenization
-        # - len(target_senses) == len(target_idxs) == len(target_pos)
-        return encodings, target_senses, target_idxs, target_pos, lemmas
+        # - len(encodings) > everything else, since we need every word for context emb
+        # - len(target_senses) == len(target_idxs) == len(target_pos) == len(target_lemmas)
+        return encodings, target_senses, target_idxs, target_pos, target_lemmas
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(

@@ -32,11 +32,9 @@ class WSDClassifier(BaseClassifier):
             "embeddings": embeddings,
             "logits": logits,
             "targets": targets,
-            # filtering out non-target pos and lemmas
-            "pos": [pos_tag[idx] for idx, pos_tag in zip(idxs, pos)],
-            "lemmas": [lemma[idx] for idx, lemma in zip(idxs, lemmas)],
+            "pos": pos,
+            "lemmas": lemmas,
         }
-        # everything is now only in terms of instances, we have filtered out wf.
 
     def log_metrics(self, processed_batch: Dict, stage: str, prefix: str = ""):
         # log F1 score overall and per pos-tag (not per class)
