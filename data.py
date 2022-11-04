@@ -238,7 +238,7 @@ class WSDDataModule(BaseDataModule):
     pos_cname2id: Dict[str, int]
     id_to_cname: List[str]
     cname_to_id: Dict[str, int]
-    lemma_to_sense_ids Dict[str, List[int]]
+    lemma_to_sense_ids: Dict[str, List[int]]
     num_classes: int
 
     def __init__(
