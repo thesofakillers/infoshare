@@ -50,11 +50,11 @@ class WSDClassifier(BaseClassifier):
             # No need to log per-pos-tag accuracy for train and val
             return
 
-        # calculate & log average accuracy per-pos tag
-        acc_per_pos = self.calc_avg_f1(batch_logits, batch_targets, batch_pos, average="none")
-        for i, acc_i in enumerate(acc_per_pos):
+        # calculate & log average f1 per-pos tag
+        f1_per_pos = self.calc_avg_f1(batch_logits, batch_targets, batch_pos, average="none")
+        for i, f1_i in enumerate(f1_per_pos):
             pos_name = self.hparams.pos_map[i]
-            self.log(f"{prefix}{stage}_acc_{pos_name}", acc_i, batch_size=batch_size)
+            self.log(f"{prefix}{stage}_acc_{pos_name}", f1_i, batch_size=batch_size)
 
     @torch.no_grad()
     def calc_avg_f1(
