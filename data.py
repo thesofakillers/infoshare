@@ -290,6 +290,7 @@ class WSDDataModule(BaseDataModule):
             "VERB",
             "AUX",
         ]
+        self.has_setup = False
 
     def prepare_data(self) -> None:
         """Takes care of downloading data"""
@@ -314,6 +315,8 @@ class WSDDataModule(BaseDataModule):
     def setup(self, stage: Optional[str] = None):
         """Sets up data for our model"""
         # ignore stage and setup all datasets, since we need id2cname from train for all
+        if self.has_setup:
+            return
         self.semcor = self.wsd_dset(os.path.join(self.data_dir, self.train_dir, "SemCor"), True)
         self.semeval2007 = self.wsd_dset(os.path.join(self.data_dir, self.eval_dir, "semeval2007"))
         self.semeval2013 = self.wsd_dset(os.path.join(self.data_dir, self.eval_dir, "semeval2013"))
@@ -323,6 +326,7 @@ class WSDDataModule(BaseDataModule):
         self.wsd_debug = self.wsd_dset(
             os.path.join(self.data_dir, self.train_dir, "SemCor")
         ).select(list(range(50)))
+        self.has_setup = True
 
     def init_label_maps(self, gold_labels: pd.core.frame.DataFrame):
         """Initialize the label maps used by the dataloaders in the collate_fn"""
