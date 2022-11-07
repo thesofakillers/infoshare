@@ -116,8 +116,8 @@ class WSDClassifier(BaseClassifier):
                 # go through sequence
                 for i, lemma in enumerate(lemmas):
                     # set difference, to get the ids of irrelevant senses for lemma
-                    non_lemma_ids = all_sense_ids - set(
-                        self.hparams.lemma_to_sense_ids[lemma],
+                    non_lemma_ids = list(
+                        all_sense_ids - set(self.hparams.lemma_to_sense_ids[lemma])
                     )
                     # make them irrelevant by masking their logits out
                     seq_logits[i, non_lemma_ids] = -torch.inf
