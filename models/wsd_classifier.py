@@ -1,3 +1,4 @@
+import sys
 from .base_classifier import BaseClassifier
 from torch import nn, Tensor, LongTensor
 from torch.nn.utils.rnn import pad_sequence
@@ -65,7 +66,7 @@ class WSDClassifier(BaseClassifier):
         f1_per_pos = self.calc_avg_f1(
             batch_logits, batch_targets, batch_pos, batch_lemmas, all_sense_ids
         )
-        f1_avg = f1_per_pos.mean()  # this is part of the shortcut
+        f1_avg = f1_per_pos.nanmean()  # this is part of the shortcut
         self.log(f"{stage}_f1", f1_avg, batch_size=batch_size)
 
         if stage != "test":
@@ -148,9 +149,11 @@ class WSDClassifier(BaseClassifier):
                     num_classes=batch_logits.shape[-1],
                     ignore_index=self.hparams.ignore_id,
                 )
+                # account for unseen pos in batch
+                if len(batch_senses_per_pos[pos_id]) > 0
+                else torch.full((batch_logits.shape[-1],), fill_value=float("nan"))
                 for pos_id in range(n_pos_tags)
-                # there might be an issue for missing POS in batch
             ]
-        ).nanmean(dim=0)
-
+            # dim=1: aggregate over all senses for each pos tag
+        ).nanmean(dim=1)
         return f1
