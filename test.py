@@ -1,7 +1,7 @@
 from argparse import ArgumentParser, Namespace
-from data import UDDataModule
+from data import UDDataModule, WSDDataModule
 from functools import partial
-from models import *
+import models
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from transformers import AutoTokenizer, logging
@@ -36,14 +36,16 @@ def test(args: Namespace):
 
     # Load the model class constructor
     if hparams.task == "DEP":
-        model_class = DEPClassifier
+        model_class = models.DEPClassifier
     elif hparams.task == "POS":
-        model_class = POSClassifier
+        model_class = models.POSClassifier
+    elif hparams.task == "WSD":
+        model_class = models.WSDClassifier
     else:
         raise Exception(f"Unsupported task: {hparams.task}")
 
     # Load the BERT encoder
-    bert = BERTEncoderForWordClassification(
+    bert = models.BERTEncoderForWordClassification(
         encoder_name=hparams.encoder_name,
         aggregation=hparams.aggregation,
         probe_layer=hparams.probe_layer,
@@ -56,28 +58,31 @@ def test(args: Namespace):
     if args.centroids_file is not None:
         model.load_centroids(args.centroids_file)
 
-    # Load PL datamodule
-    ud = UDDataModule(
-        hparams.task,
-        hparams.treebank_name,
-        tokenize_fn,
-        args.data_dir,
-        args.batch_size,
-        args.num_workers,
-    )
-
-    ud.prepare_data()
-    ud.setup()
+    # Load the appropriate datamodule
+    if hparams.task in {"POS", "DEP"}:
+        datamodule = UDDataModule(
+            hparams.task,
+            hparams.treebank_name,
+            tokenize_fn,
+            args.data_dir,
+            args.batch_size,
+            args.num_workers,
+        )
+        log_save_dir = (
+            os.path.join(args.log_dir, args.encoder_name, args.treebank_name, args.task),
+        )
+    elif hparams.task == "WSD":
+        datamodule = WSDDataModule(
+            hparams.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
+        )
+        log_save_dir = os.path.join(args.log_dir, args.encoder_name, args.task)
+    datamodule.prepare_data()
+    datamodule.setup()
 
     # Configure the logger
     v_postfix = f"_{args.neutralizer}" if args.neutralizer else ""
     logger = TensorBoardLogger(
-        save_dir=os.path.join(
-            args.log_dir,
-            hparams.encoder_name,
-            hparams.treebank_name,
-            hparams.task,
-        ),
+        save_dir=log_save_dir,
         name=get_experiment_name(hparams),
         version=f"evaluation{v_postfix}",
         default_hp_metric=False,
@@ -98,7 +103,7 @@ def test(args: Namespace):
         model.set_neutralizer(args.neutralizer)
 
     # Test the model
-    trainer.test(model, ud)
+    trainer.test(model, datamodule)
 
 
 if __name__ == "__main__":
