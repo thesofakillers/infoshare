@@ -151,7 +151,9 @@ class WSDClassifier(BaseClassifier):
                 )
                 # account for unseen pos in batch
                 if len(batch_senses_per_pos[pos_id]) > 0
-                else torch.full((batch_logits.shape[-1],), fill_value=float("nan"))
+                else torch.full(
+                    (batch_logits.shape[-1],), fill_value=float("nan"), device=self.device
+                )
                 for pos_id in range(n_pos_tags)
             ]
             # dim=1: aggregate over all senses for each pos tag
