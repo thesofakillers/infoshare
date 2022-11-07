@@ -114,7 +114,7 @@ class WSDClassifier(BaseClassifier):
             ):
                 seq_logits = logits[:s_len]
                 # go through sequence
-                for i, lemma in lemmas:
+                for i, lemma in enumerate(lemmas):
                     # set difference, to get the ids of irrelevant senses for lemma
                     non_lemma_ids = all_sense_ids - set(
                         self.hparams.lemma_to_sense_ids[lemma],
