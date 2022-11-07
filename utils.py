@@ -240,3 +240,19 @@ def download_and_unzip(url, download_dir, target_filename):
     print("Unzipping...")
     with zipfile.ZipFile(file_path, "r") as zip_ref:
         zip_ref.extractall(download_dir)
+
+
+def list_of_zero():
+    """
+    Necessary for pickling our default dicts
+    see https://stackoverflow.com/a/16439720/9889508
+    """
+    return [0]
+
+
+def just_zero():
+    """
+    Necessary for pickling our default dicts
+    see https://stackoverflow.com/a/16439720/9889508
+    """
+    return 0

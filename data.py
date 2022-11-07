@@ -13,7 +13,7 @@ from transformers import BatchEncoding
 import pandas as pd
 import numpy as np
 
-from utils import download_and_unzip
+from utils import download_and_unzip, list_of_zero, just_zero
 
 
 class BaseDataModule(LightningDataModule):
@@ -334,11 +334,11 @@ class WSDDataModule(BaseDataModule):
         self.id_to_cname = senses
         self.num_classes = len(senses)
         self.cname_to_id = {cname: i for i, cname in enumerate(self.id_to_cname)}
-        self.cname_to_id = defaultdict(lambda: 0, self.cname_to_id)
+        self.cname_to_id = defaultdict(just_zero, self.cname_to_id)
         gold_labels["sense_id"] = gold_labels.label.map(self.cname_to_id)
         gold_labels["lemma"] = gold_labels["label"].str.split("%").str[0]
         self.lemma_to_sense_ids = gold_labels.groupby("lemma")["sense_id"].apply(list).to_dict()
-        self.lemma_to_sense_ids = defaultdict(lambda: [0], self.lemma_to_sense_ids)
+        self.lemma_to_sense_ids = defaultdict(list_of_zero, self.lemma_to_sense_ids)
 
     def wsd_dset(self, dataset_path: str, is_train: bool = False) -> Dataset:
         """
