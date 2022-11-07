@@ -1,5 +1,5 @@
 from argparse import ArgumentParser, Namespace
-from data import UDDataModule, WSDDataModule
+from data import UDDataModule, WSDDataModule, BaseDataModule
 from functools import partial
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
@@ -157,14 +157,13 @@ if __name__ == "__main__":
     # Encoder arguments
     models.BERTEncoderForWordClassification.add_model_specific_args(parser)
 
-    # Classifier arguments
+    # Classifier arguments. POS and WSD covered by Base. DEP has additional args.
     models.BaseClassifier.add_model_specific_args(parser)
     models.DEPClassifier.add_model_specific_args(parser)
-    models.WSDClassifier.add_model_specific_args(parser)
 
-    # Dataset arguments
+    # Dataset arguments. UD has additional args.
+    BaseDataModule.add_model_specific_args(parser)
     UDDataModule.add_model_specific_args(parser)
-    WSDDataModule.add_model_specific_args(parser)
 
     args = parser.parse_args()
 
