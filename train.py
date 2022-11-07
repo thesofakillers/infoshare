@@ -33,15 +33,15 @@ def train(args: Namespace):
             args.batch_size,
             args.num_workers,
         )
+        log_save_dir = (
+            os.path.join(args.log_dir, args.encoder_name, args.treebank_name, args.task),
+        )
     elif args.task == "WSD":
         metric = "f1"
         datamodule = WSDDataModule(
-            args.task,
-            tokenize_fn,
-            args.data_dir,
-            args.batch_size,
-            args.num_workers,
+            args.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
         )
+        log_save_dir = os.path.join(args.log_dir, args.encoder_name, args.task)
     datamodule.prepare_data()
     datamodule.setup("fit")
 
@@ -84,7 +84,7 @@ def train(args: Namespace):
 
     # configure logger
     logger = TensorBoardLogger(
-        save_dir=os.path.join(args.log_dir, args.encoder_name, args.treebank_name, args.task),
+        save_dir=log_save_dir,
         name=get_experiment_name(args),
         default_hp_metric=False,
     )
@@ -160,9 +160,11 @@ if __name__ == "__main__":
     # Classifier arguments
     models.BaseClassifier.add_model_specific_args(parser)
     models.DEPClassifier.add_model_specific_args(parser)
+    models.WSDClassifier.add_model_specific_args(parser)
 
     # Dataset arguments
     UDDataModule.add_model_specific_args(parser)
+    WSDDataModule.add_model_specific_args(parser)
 
     args = parser.parse_args()
 
