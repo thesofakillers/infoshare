@@ -33,8 +33,11 @@ def train(args: Namespace):
             args.batch_size,
             args.num_workers,
         )
-        log_save_dir = (
-            os.path.join(args.log_dir, args.encoder_name, args.treebank_name, args.task),
+        log_save_dir = os.path.join(
+            args.log_dir,
+            args.encoder_name,
+            args.treebank_name,
+            args.task,
         )
     elif args.task == "WSD":
         metric = "f1"
