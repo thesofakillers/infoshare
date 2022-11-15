@@ -351,9 +351,8 @@ class WSDDataModule(BaseDataModule):
         """Initialize the label maps used by the dataloaders in the collate_fn"""
         self.pos_id2cname = self.POS_TAGS
         self.pos_cname2id = {cname: i for i, cname in enumerate(self.pos_id2cname)}
-        senses: List[str] = ["unk"] + np.random.RandomState(seed=42).permutation(
-            gold_labels.label.unique()
-        ).tolist()
+        # for usage with AdaptiveLogSoftmaxWithLoss, labels correspond to frequency rank
+        senses: List[str] = gold_labels.label.value_counts().index.tolist() + ["unk"]
         self.id_to_cname = senses
         self.num_classes = len(senses)
         self.cname_to_id = {cname: i for i, cname in enumerate(self.id_to_cname)}
