@@ -124,7 +124,8 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         # At the end of the epoch, we take the mean of vectors
         # accumulated for each class and store it in class_centroids
         self.class_centroids = {
-            k: torch.mean(torch.vstack(v), dim=0) for k, v in self.class_centroids.items()
+            k: torch.mean(torch.vstack(v), dim=0)
+            for k, v in self.class_centroids.items()
         }
 
     def fit_step(self, batch: Tuple, stage: str) -> Tensor:
@@ -140,7 +141,9 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
 
         # Calculate & log CrossEntropy loss
         # NOTE: CE expects input shape (N, C, S) while logits' shape is (N, S, C)
-        loss = F.cross_entropy(batch_logits.permute(0, 2, 1), targets_padded, ignore_index=-1)
+        loss = F.cross_entropy(
+            batch_logits.permute(0, 2, 1), targets_padded, ignore_index=-1
+        )
         self.log(f"{stage}_loss", loss, batch_size=batch_size)
 
         # Calculate & log average accuracy
@@ -152,7 +155,9 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
 
         return loss
 
-    def postprocess_val_batch(self, batch_embs: Tensor, batch_logits: Tensor, targets: Tensor):
+    def postprocess_val_batch(
+        self, batch_embs: Tensor, batch_logits: Tensor, targets: Tensor
+    ):
         """Postprocess the validation batch in order to calculate the class centroids."""
         for embs, logits, target in zip(batch_embs, batch_logits, targets):
             preds = logits[: len(target), :].argmax(dim=1).tolist()
@@ -198,7 +203,9 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
                 centroid_emb = torch.cat(
                     [
                         centroid_emb,
-                        torch.zeros(embs.shape[-1] - centroid_emb.shape[0], device=self.device),
+                        torch.zeros(
+                            embs.shape[-1] - centroid_emb.shape[0], device=self.device
+                        ),
                     ]
                 )
             elif centroid_emb.shape[0] > embs.shape[-1]:
@@ -240,7 +247,9 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         targets = processed_batch["targets"]
         self.log_accuracy(batch_logits, targets, stage=stage, prefix=prefix)
 
-    def log_accuracy(self, logits: Tensor, targets: Tensor, stage: str, prefix: str = ""):
+    def log_accuracy(
+        self, logits: Tensor, targets: Tensor, stage: str, prefix: str = ""
+    ):
         batch_size = len(logits)
 
         # Calculate & log average micro accuracy
@@ -289,10 +298,13 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         # load centroids from file
         centroids = torch.load(file_path)
         # override label_to_id
-        self.label_to_id = {label: i for i, label in enumerate(sorted(centroids.keys()))}
+        self.label_to_id = {
+            label: i for i, label in enumerate(sorted(centroids.keys()))
+        }
         # override class_centroids, consistently with label_to_id
         self.class_centroids = {
-            i: centroids[label].to(self.device) for i, label in enumerate(sorted(centroids.keys()))
+            i: centroids[label].to(self.device)
+            for i, label in enumerate(sorted(centroids.keys()))
         }
 
     #######################

@@ -133,7 +133,9 @@ def get_acc_drop(
     if suffix_filter is None:
         # Filter the columns that don't appear in the index and vice versa
         drop_indices = set(acc_drop.T.columns).difference(acc_drop.columns)
-        drop_columns = set(acc_drop.columns).difference(acc_drop.T.columns).difference(["avg"])
+        drop_columns = (
+            set(acc_drop.columns).difference(acc_drop.T.columns).difference(["avg"])
+        )
     else:
         drop_indices = set()
         drop_columns = set()

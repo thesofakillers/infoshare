@@ -113,7 +113,9 @@ class UDDataModule(BaseDataModule):
         # when we try to parse the sentences, especially for dependency relations which is
         # affected by the word order as the "head" value is a token index.
         def remove_underscores(x: Dict[str, list]) -> Dict[str, list]:
-            keep_indices = [idx for idx, value in enumerate(x["head"]) if value != "None"]
+            keep_indices = [
+                idx for idx, value in enumerate(x["head"]) if value != "None"
+            ]
             for column in keep_columns:
                 x[column] = [x[column][idx] for idx in keep_indices]
 
@@ -143,7 +145,9 @@ class UDDataModule(BaseDataModule):
 
             if self.hparams.task == "POS":
                 self.id_to_cname = self.ud_train.info.features["upos"].feature.names
-                self.num_classes = self.ud_train.info.features["upos"].feature.num_classes
+                self.num_classes = self.ud_train.info.features[
+                    "upos"
+                ].feature.num_classes
             elif self.hparams.task == "DEP":
                 # Aggregate all classes from the train dataset
                 # We include "_" to comply with the number of classes in the dataset spec
@@ -172,7 +176,9 @@ class UDDataModule(BaseDataModule):
         """Maps a list of dependency relations to unique ids."""
         return LongTensor([self.cname_to_id[drel] for drel in drels])
 
-    def pos_collate_fn(self, batch: List[Dict[str, Any]]) -> Tuple[BatchEncoding, List[LongTensor]]:
+    def pos_collate_fn(
+        self, batch: List[Dict[str, Any]]
+    ) -> Tuple[BatchEncoding, List[LongTensor]]:
         """Custom collate function for the POS task."""
         encodings = self.tokenize_fn([x["tokens"] for x in batch])
         targets = [LongTensor(x["upos"]) for x in batch]
@@ -317,12 +323,24 @@ class WSDDataModule(BaseDataModule):
         # ignore stage and setup all datasets, since we need id2cname from train for all
         if self.has_setup:
             return
-        self.semcor = self.wsd_dset(os.path.join(self.data_dir, self.train_dir, "SemCor"), True)
-        self.semeval2007 = self.wsd_dset(os.path.join(self.data_dir, self.eval_dir, "semeval2007"))
-        self.semeval2013 = self.wsd_dset(os.path.join(self.data_dir, self.eval_dir, "semeval2013"))
-        self.semeval2015 = self.wsd_dset(os.path.join(self.data_dir, self.eval_dir, "semeval2015"))
-        self.senseval2 = self.wsd_dset(os.path.join(self.data_dir, self.eval_dir, "senseval2"))
-        self.senseval3 = self.wsd_dset(os.path.join(self.data_dir, self.eval_dir, "senseval3"))
+        self.semcor = self.wsd_dset(
+            os.path.join(self.data_dir, self.train_dir, "SemCor"), True
+        )
+        self.semeval2007 = self.wsd_dset(
+            os.path.join(self.data_dir, self.eval_dir, "semeval2007")
+        )
+        self.semeval2013 = self.wsd_dset(
+            os.path.join(self.data_dir, self.eval_dir, "semeval2013")
+        )
+        self.semeval2015 = self.wsd_dset(
+            os.path.join(self.data_dir, self.eval_dir, "semeval2015")
+        )
+        self.senseval2 = self.wsd_dset(
+            os.path.join(self.data_dir, self.eval_dir, "senseval2")
+        )
+        self.senseval3 = self.wsd_dset(
+            os.path.join(self.data_dir, self.eval_dir, "senseval3")
+        )
         self.wsd_debug = self.wsd_dset(
             os.path.join(self.data_dir, self.train_dir, "SemCor")
         ).select(list(range(50)))
@@ -341,7 +359,9 @@ class WSDDataModule(BaseDataModule):
         self.cname_to_id = defaultdict(just_zero, self.cname_to_id)
         gold_labels["sense_id"] = gold_labels.label.map(self.cname_to_id)
         gold_labels["lemma"] = gold_labels["label"].str.split("%").str[0]
-        self.lemma_to_sense_ids = gold_labels.groupby("lemma")["sense_id"].apply(list).to_dict()
+        self.lemma_to_sense_ids = (
+            gold_labels.groupby("lemma")["sense_id"].apply(list).to_dict()
+        )
         self.lemma_to_sense_ids = defaultdict(list_of_zero, self.lemma_to_sense_ids)
 
     def wsd_dset(self, dataset_path: str, is_train: bool = False) -> Dataset:
@@ -388,10 +408,16 @@ class WSDDataModule(BaseDataModule):
                         sent_lemmas.append(word.get("lemma"))
                         idxs.append(idx)
                         pos.append(self.pos_cname2id[word.get("pos")])
-                        senses.append(self.cname_to_id[gold_labels["label"].loc[word.get("id")]])
-                data.append((sentence.get("id"), sent_words, sent_lemmas, idxs, senses, pos))
+                        senses.append(
+                            self.cname_to_id[gold_labels["label"].loc[word.get("id")]]
+                        )
+                data.append(
+                    (sentence.get("id"), sent_words, sent_lemmas, idxs, senses, pos)
+                )
         # convert to dataframe
-        data_df = pd.DataFrame(data, columns=["id", "tokens", "lemmas", "idxs", "senses", "pos"])
+        data_df = pd.DataFrame(
+            data, columns=["id", "tokens", "lemmas", "idxs", "senses", "pos"]
+        )
         data_df = data_df.set_index("id")
         # and finally to hf dataset
         dataset = Dataset.from_pandas(
@@ -404,7 +430,9 @@ class WSDDataModule(BaseDataModule):
                     "idxs": Sequence(Value("int64")),
                     "senses": Sequence(ClassLabel(names=self.id_to_cname)),
                     "pos": Sequence(
-                        ClassLabel(num_classes=len(self.POS_TAGS), names=self.pos_id2cname)
+                        ClassLabel(
+                            num_classes=len(self.POS_TAGS), names=self.pos_id2cname
+                        )
                     ),
                 }
             ),
@@ -419,7 +447,9 @@ class WSDDataModule(BaseDataModule):
 
     def wsd_collate_fn(
         self, batch: List[Dict[str, Any]]
-    ) -> Tuple[BatchEncoding, List[LongTensor], List[LongTensor], List[LongTensor], List[str]]:
+    ) -> Tuple[
+        BatchEncoding, List[LongTensor], List[LongTensor], List[LongTensor], List[str]
+    ]:
         encodings = self.tokenize_fn([x["tokens"] for x in batch])
         target_senses = [LongTensor(x["senses"]) for x in batch]
         target_idxs = [LongTensor(x["idxs"]) for x in batch]

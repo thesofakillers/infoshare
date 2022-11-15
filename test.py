@@ -19,7 +19,9 @@ def test(args: Namespace):
 
     # Load the hyperparameters from checkpoint
     current_device = "cpu" if args.no_gpu or (not torch.cuda.is_available()) else "cuda"
-    hparams = torch.load(args.checkpoint, map_location=current_device)["hyper_parameters"]
+    hparams = torch.load(args.checkpoint, map_location=current_device)[
+        "hyper_parameters"
+    ]
     hparams = Namespace(**hparams)
 
     # Load the tokenizer
@@ -53,7 +55,9 @@ def test(args: Namespace):
 
     # Load the PL module
     print(f"Loading from checkpoint: {args.checkpoint}")
-    model = model_class.load_from_checkpoint(args.checkpoint, num_workers=args.num_workers)
+    model = model_class.load_from_checkpoint(
+        args.checkpoint, num_workers=args.num_workers
+    )
     model.set_encoder(bert)
     if args.centroids_file is not None:
         model.load_centroids(args.centroids_file)
@@ -69,7 +73,9 @@ def test(args: Namespace):
             args.num_workers,
         )
         log_save_dir = (
-            os.path.join(args.log_dir, args.encoder_name, args.treebank_name, args.task),
+            os.path.join(
+                args.log_dir, args.encoder_name, args.treebank_name, args.task
+            ),
         )
     elif hparams.task == "WSD":
         datamodule = WSDDataModule(

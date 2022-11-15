@@ -55,9 +55,13 @@ class DEPClassifier(BaseClassifier):
         classifier_input = pad_sequence(classifier_input, batch_first=True)
         return classifier_input
 
-    def forward(self, encoded_input: BatchEncoding, heads: List[Tensor]) -> Tuple[Tensor, Tensor]:
+    def forward(
+        self, encoded_input: BatchEncoding, heads: List[Tensor]
+    ) -> Tuple[Tensor, Tensor]:
         embeddings = self.bert(encoded_input)
-        concatenated_embs = self.intercept_embeddings(embeddings=embeddings, heads=heads)
+        concatenated_embs = self.intercept_embeddings(
+            embeddings=embeddings, heads=heads
+        )
         output = self.classifier(concatenated_embs)
         return concatenated_embs, output
 

@@ -70,14 +70,20 @@ class BERTEncoderForWordClassification(Module):
 
         # Aggregate the BERT representations for each word
         batch_output_per_word = []
-        for sequence_idx, sequence_output_per_token in enumerate(batch_output_per_token):
+        for sequence_idx, sequence_output_per_token in enumerate(
+            batch_output_per_token
+        ):
             # Get amount of (sub-word) tokens corresponding to each word
             word_ids = batch_encoding.word_ids(sequence_idx)
             split_idx, (start, end) = self._get_tokens_per_word(word_ids)
 
             # Split, aggregate and concatenate BERT representations
-            sequence_output_per_word = torch.split(sequence_output_per_token[start:end], split_idx)
-            sequence_output_per_word = list(map(self.aggregate, sequence_output_per_word))
+            sequence_output_per_word = torch.split(
+                sequence_output_per_token[start:end], split_idx
+            )
+            sequence_output_per_word = list(
+                map(self.aggregate, sequence_output_per_word)
+            )
             sequence_output_per_word = torch.vstack(sequence_output_per_word)
 
             # Append sequence output to batch outputgit
