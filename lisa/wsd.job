@@ -5,7 +5,7 @@
 #SBATCH --job-name=WSD
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
-#SBATCH --time=01:00:00
+#SBATCH --time=24:00:00
 #SBATCH --mem=32000M
 #SBATCH --output=lisa/outputs/wsd_train_%A.out
 
@@ -15,4 +15,6 @@ module load Anaconda3/2021.05
 
 source activate bert-infoshare
 
-srun python -u train.py --task WSD --num_workers 3
+srun python -u train.py --task WSD --num_workers 3 \
+  --aggregation first \
+  --probe_layer 12
