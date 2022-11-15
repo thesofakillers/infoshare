@@ -246,6 +246,7 @@ class WSDDataModule(BaseDataModule):
     cname_to_id: Dict[str, int]
     lemma_to_sense_ids: Dict[str, List[int]]
     num_classes: int
+    idx_to_dataset: List[str]
 
     def __init__(
         self,
@@ -363,6 +364,8 @@ class WSDDataModule(BaseDataModule):
             gold_labels.groupby("lemma")["sense_id"].apply(list).to_dict()
         )
         self.lemma_to_sense_ids = defaultdict(list_of_zero, self.lemma_to_sense_ids)
+        # mapping test dataset idxs to dataset names
+        self.idx_to_dataset = ["semeval2013", "semeval2015", "senseval2", "senseval3"]
 
     def wsd_dset(self, dataset_path: str, is_train: bool = False) -> Dataset:
         """
