@@ -141,7 +141,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
 
         # Calculate & log CrossEntropy loss
         # NOTE: CE expects input shape (N, C, S) while logits' shape is (N, S, C)
-        loss = F.cross_entropy(
+        loss = self.compute_loss(
             batch_logits.permute(0, 2, 1), targets_padded, ignore_index=-1
         )
         self.log(f"{stage}_loss", loss, batch_size=batch_size)
@@ -164,6 +164,16 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
             # for each word in sentence
             for emb, pred in zip(embs, preds):
                 self.class_centroids[pred] += [emb]
+
+    def compute_loss(
+        self, logits: Tensor, targets: Tensor, ignore_index: int
+    ) -> Tensor:
+        """
+        By default, we just use vanilla cross_entropy
+        But this function can be overridden by inheriting classes
+        """
+        loss = F.cross_entropy(logits, targets, ignore_index=-1)
+        return loss
 
     ##############
     # Evaluation #

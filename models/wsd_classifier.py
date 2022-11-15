@@ -17,6 +17,16 @@ class WSDClassifier(BaseClassifier):
     ):
         super().__init__(**kwargs)
         self.save_hyperparameters(pos_map, lemma_to_sense_ids)
+        self.loss_fn = nn.AdaptiveLogSoftmaxWithLoss(
+            in_features=self.hparams.n_hidden,
+            n_classes=self.hparams.n_classes,
+            cutoffs=[],  # TODO
+            # also TODO: > Labels passed as inputs to this module should be sorted
+            # according to their frequency. This means that the most frequent label
+            # should be represented by the index 0, and the least frequent label should
+            # be represented by the index n_classes - 1.
+            # so basically, need to re-label things in datamodule based on frequency
+        )
 
     def get_classifier_head(self, n_hidden: int, n_classes: int) -> nn.Module:
         return nn.Sequential(
@@ -48,6 +58,13 @@ class WSDClassifier(BaseClassifier):
             "pos": pos,
             "lemmas": lemmas,
         }
+
+    def compute_loss(
+        self, logits: Tensor, targets: Tensor, ignore_index: int
+    ) -> Tensor:
+        # we don't use ignore_index
+        _output, loss = self.loss_fn(logits, targets)
+        return loss
 
     def log_metrics(
         self,
