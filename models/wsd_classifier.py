@@ -1,4 +1,3 @@
-import sys
 from .base_classifier import BaseClassifier
 from torch import nn, Tensor, LongTensor
 from torch.nn.utils.rnn import pad_sequence
