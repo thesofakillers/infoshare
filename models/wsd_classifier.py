@@ -20,19 +20,20 @@ class WSDClassifier(BaseClassifier):
         self.loss_fn = nn.AdaptiveLogSoftmaxWithLoss(
             in_features=self.hparams.n_hidden,
             n_classes=self.hparams.n_classes,
-            cutoffs=[],  # TODO
-            # also TODO: > Labels passed as inputs to this module should be sorted
-            # according to their frequency. This means that the most frequent label
-            # should be represented by the index 0, and the least frequent label should
-            # be represented by the index n_classes - 1.
-            # so basically, need to re-label things in datamodule based on frequency
+            cutoffs=[5, 10, 30, 40],  # arbitrarily chosen by inspecting freqs
         )
 
     def get_classifier_head(self, n_hidden: int, n_classes: int) -> nn.Module:
-        return nn.Sequential(
-            nn.Linear(n_hidden, n_hidden),
-            nn.Tanh(),
-            nn.Linear(n_hidden, n_classes),
+        return nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Linear(n_hidden, n_hidden),
+                    nn.Tanh(),
+                ),
+                # nn.Linear(n_hidden, n_classes),
+                self.loss_fn,  # based on
+                # https://discuss.pytorch.org/t/understanding-adaptivelogsoftmaxwithloss/30057
+            ]
         )
 
     def forward(
@@ -45,7 +46,8 @@ class WSDClassifier(BaseClassifier):
         embeddings = [emb[idx] for idx, emb in zip(salient_idxs, embeddings)]
         # indexing breaks padding (max_sequence_len -> max_salient_len), so pad again
         embeddings = pad_sequence(embeddings, batch_first=True)
-        logits = self.classifier(embeddings)
+        activations = self.classifier[:2](embeddings)
+        logits = self.classifier[2].log_prob(activations)
         return embeddings, logits
 
     def process_batch(self, batch: Tuple) -> Dict[str, Union[Tensor, List]]:
@@ -62,8 +64,12 @@ class WSDClassifier(BaseClassifier):
     def compute_loss(
         self, logits: Tensor, targets: Tensor, ignore_index: int
     ) -> Tensor:
-        # we don't use ignore_index
-        _output, loss = self.loss_fn(logits, targets)
+
+        # AdaptiveLogSoftmaxWithLoss needs targets to be X x 1
+        targets = targets.reshape(-1)
+        # so therefore we need logits to be X x C
+        logits = logits.reshape(-1, logits.shape[-1])
+        loss = self.loss_fn(logits, targets)
         return loss
 
     def log_metrics(
