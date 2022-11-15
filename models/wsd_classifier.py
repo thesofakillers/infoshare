@@ -2,7 +2,7 @@ from .base_classifier import BaseClassifier
 from torch import nn, Tensor, LongTensor
 from torch.nn.utils.rnn import pad_sequence
 from transformers import BatchEncoding
-from typing import Set, Tuple, Dict, List, Union
+from typing import Set, Tuple, Dict, List, Union, Optional
 
 import torch
 import torchmetrics.functional as TF
@@ -49,12 +49,23 @@ class WSDClassifier(BaseClassifier):
             "lemmas": lemmas,
         }
 
-    def log_metrics(self, processed_batch: Dict, stage: str, prefix: str = ""):
+    def log_metrics(
+        self,
+        processed_batch: Dict,
+        stage: str,
+        prefix: str = "",
+        dataloader_id: Optional[int] = None,
+    ):
         # log F1 score overall and per pos-tag (not per class)
         batch_logits = processed_batch["logits"]
         batch_targets = processed_batch["targets"]
         batch_pos = processed_batch["pos"]
         batch_lemmas = processed_batch["lemmas"]
+
+        log_name = f"{prefix}{stage}_f1"
+        if stage == "test":
+            curr_dataset = self.trainer.datamodule.idx_to_dataset[dataloader_id]
+            log_name = f"{curr_dataset}/" + log_name
 
         batch_size = len(batch_logits)
         all_sense_ids = set(range(self.hparams.n_classes))
@@ -66,16 +77,20 @@ class WSDClassifier(BaseClassifier):
             batch_logits, batch_targets, batch_pos, batch_lemmas, all_sense_ids
         )
         f1_avg = f1_per_pos.nanmean()  # this is part of the shortcut
-        self.log(f"{stage}_f1", f1_avg, batch_size=batch_size)
+        self.log(log_name, f1_avg, batch_size=batch_size)
 
         if stage != "test":
-            # No need to log per-pos-tag accuracy for train and val
+            # No need to log per-pos-tag metric for train and val
             return
 
         # log average f1 per-pos tag
         for i, f1_i in enumerate(f1_per_pos):
             pos_name = self.hparams.pos_map[i]
-            self.log(f"{prefix}{stage}_acc_{pos_name}", f1_i, batch_size=batch_size)
+            self.log(
+                f"{log_name}_{pos_name}",
+                f1_i,
+                batch_size=batch_size,
+            )
 
     @torch.no_grad()
     def calc_avg_f1(
