@@ -140,10 +140,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         targets_padded[targets_padded == self.hparams.ignore_id] = -1
 
         # Calculate & log CrossEntropy loss
-        # NOTE: CE expects input shape (N, C, S) while logits' shape is (N, S, C)
-        loss = self.compute_loss(
-            batch_logits.permute(0, 2, 1), targets_padded, ignore_index=-1
-        )
+        loss = self.compute_loss(batch_logits, targets_padded, ignore_index=-1)
         self.log(f"{stage}_loss", loss, batch_size=batch_size)
 
         # Calculate & log average accuracy
@@ -171,8 +168,11 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         """
         By default, we just use vanilla cross_entropy
         But this function can be overridden by inheriting classes
+
+        logits is N x S x C, targets is N x S
         """
-        loss = F.cross_entropy(logits, targets, ignore_index=-1)
+        # NOTE: CE expects input shape (N, C, S) while logits' shape is (N, S, C)
+        loss = F.cross_entropy(logits.permute(0, 2, 1), targets, ignore_index=-1)
         return loss
 
     ##############
