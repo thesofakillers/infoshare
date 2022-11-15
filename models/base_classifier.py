@@ -174,12 +174,19 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         for class_id, centroid in self.class_centroids.items():
             self.class_centroids[class_id] = centroid.to(self.device)
 
-    def test_step(self, batch: Tuple, _: Tensor):
+    def test_step(
+        self,
+        batch: Tuple,
+        batch_idx: Optional[int] = None,
+        dataloader_id: Optional[int] = None,
+    ):
         processed_batch = self.process_batch(batch)
 
         if not self.has_neutralizer:
             # Perform standard testing
-            self.log_metrics(processed_batch, stage="test")
+            self.log_metrics(
+                processed_batch, stage="test", prefix="", dataloader_id=dataloader_id
+            )
         else:
             # Perform the testing on neutralized embeddings
             neutral_embs = self.subtract_centroid(processed_batch["embeddings"])
@@ -189,6 +196,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
                 processed_batch,
                 stage="test",
                 prefix=f"{self.neutralizer}/",
+                dataloader_id=dataloader_id,
             )
 
     def subtract_centroid(self, embs: Tensor) -> Tensor:
@@ -242,7 +250,13 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
     # Logging & metrics #
     #####################
 
-    def log_metrics(self, processed_batch: Dict, stage: str, prefix: str = ""):
+    def log_metrics(
+        self,
+        processed_batch: Dict,
+        stage: str,
+        prefix: str = "",
+        dataloader_id: Optional[int] = None,
+    ):
         batch_logits = processed_batch["logits"]
         targets = processed_batch["targets"]
         self.log_accuracy(batch_logits, targets, stage=stage, prefix=prefix)
