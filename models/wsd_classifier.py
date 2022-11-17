@@ -54,7 +54,7 @@ class WSDClassifier(BaseClassifier):
         processed_batch: Dict,
         stage: str,
         prefix: str = "",
-        dataloader_id: Optional[int] = None,
+        dataloader_idx: Optional[int] = None,
     ):
         # log F1 score overall and per pos-tag (not per class)
         batch_logits = processed_batch["logits"]
@@ -64,7 +64,7 @@ class WSDClassifier(BaseClassifier):
 
         log_name = f"{prefix}{stage}_f1"
         if stage == "test":
-            curr_dataset = self.trainer.datamodule.idx_to_dataset[dataloader_id]
+            curr_dataset = self.trainer.datamodule.idx_to_dataset[dataloader_idx]
             log_name = f"{curr_dataset}/" + log_name
 
         batch_size = len(batch_logits)
