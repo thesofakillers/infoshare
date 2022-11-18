@@ -62,60 +62,81 @@ class WSDClassifier(BaseClassifier):
         batch_pos = processed_batch["pos"]
         batch_lemmas = processed_batch["lemmas"]
 
-        log_name = f"{prefix}{stage}_f1"
+        batch_size = len(batch_logits)
+        all_sense_ids = set(range(self.hparams.n_classes))
+
+        (
+            batch_logits_per_pos,
+            batch_senses_per_pos,
+            num_classes,
+            n_pos_tags,
+        ) = self.prepare_metric_inputs(
+            batch_logits, batch_targets, batch_pos, batch_lemmas, all_sense_ids
+        )
+        f1_per_pos: Tensor = self.calc_avg_metric(
+            batch_logits_per_pos,
+            batch_senses_per_pos,
+            num_classes,
+            n_pos_tags,
+            TF.f1_score,
+        )
+        self.log_single_metric(
+            f1_per_pos, "f1", batch_size, stage, dataloader_idx, prefix
+        )
+        acc_per_pos: Tensor = self.calc_avg_metric(
+            batch_logits_per_pos,
+            batch_senses_per_pos,
+            num_classes,
+            n_pos_tags,
+            TF.accuracy,
+        )
+        self.log_single_metric(
+            acc_per_pos, "acc", batch_size, stage, dataloader_idx, prefix
+        )
+
+    def log_single_metric(
+        self,
+        metric_per_pos: Tensor,
+        metric_name: str,
+        batch_size: int,
+        stage: str,
+        dataloader_idx: Optional[int] = None,
+        prefix: str = "",
+    ):
+        log_name = f"{prefix}{stage}_{metric_name}"
         if stage == "test":
             curr_dataset = self.trainer.datamodule.idx_to_dataset[dataloader_idx]
             log_name = f"{curr_dataset}/" + log_name
 
-        batch_size = len(batch_logits)
-        all_sense_ids = set(range(self.hparams.n_classes))
-
-        # NOTE: this is a shortcut i thought of - compute f1 per pos. then to get
-        # average f1 we can just average that? previously we did calc_avg_f1 twice, once
-        # with and once without averaging. I've changed default average to 'none'
-        f1_per_pos = self.calc_avg_f1(
-            batch_logits, batch_targets, batch_pos, batch_lemmas, all_sense_ids
-        )
-        f1_avg = f1_per_pos.nanmean()  # this is part of the shortcut
-        self.log(log_name, f1_avg, batch_size=batch_size)
+        metric_avg = metric_per_pos.nanmean()  # this is part of the shortcut
+        self.log(log_name, metric_avg, batch_size=batch_size)
 
         if stage != "test":
             # No need to log per-pos-tag metric for train and val
             return
 
-        # log average f1 per-pos tag
-        for i, f1_i in enumerate(f1_per_pos):
+        # log average metric per-pos tag
+        for i, metric_i in enumerate(metric_per_pos):
             pos_name = self.hparams.pos_map[i]
             self.log(
                 f"{log_name}_{pos_name}",
-                f1_i,
+                metric_i,
                 batch_size=batch_size,
             )
 
     @torch.no_grad()
-    def calc_avg_f1(
+    def prepare_metric_inputs(
         self,
         batch_logits: Tensor,
         batch_targets: List[LongTensor],
         batch_pos: List[LongTensor],
         batch_lemmas: List[List[str]],
         all_sense_ids: Set[int],
-        average: str = "none",
     ):
-        """Warning: this function is untested"""
         n_pos_tags = len(self.hparams.pos_map)
+        num_classes = batch_logits.shape[-1]
         # Extract sequence length from number of senses to predict
         seq_lens = [len(_) for _ in batch_targets]
-
-        batch_logits_per_pos = [
-            torch.vstack(
-                [
-                    logits[:s_len][pos == pos_id]
-                    for logits, pos, s_len in zip(batch_logits, batch_pos, seq_lens)
-                ]
-            )
-            for pos_id in range(n_pos_tags)
-        ]
 
         batch_logits_per_pos = []
         for pos_id in range(n_pos_tags):
@@ -153,20 +174,31 @@ class WSDClassifier(BaseClassifier):
             )
             for pos_id in range(n_pos_tags)
         ]
+        return batch_logits_per_pos, batch_senses_per_pos, num_classes, n_pos_tags
 
-        f1 = torch.vstack(
+    @torch.no_grad()
+    def calc_avg_metric(
+        self,
+        batch_logits_per_pos: List[Tensor],
+        batch_senses_per_pos: List[Tensor],
+        num_classes: int,
+        n_pos_tags: int,
+        metric_fn: str,
+        average: str = "none",
+    ) -> Tensor:
+        metric = torch.vstack(
             [
-                TF.f1_score(
+                metric_fn(
                     preds=batch_logits_per_pos[pos_id],
                     target=batch_senses_per_pos[pos_id],
                     average=average,
-                    num_classes=batch_logits.shape[-1],
+                    num_classes=num_classes,
                     ignore_index=self.hparams.ignore_id,
                 )
                 # account for unseen pos in batch
                 if len(batch_senses_per_pos[pos_id]) > 0
                 else torch.full(
-                    (batch_logits.shape[-1],),
+                    (num_classes,),
                     fill_value=float("nan"),
                     device=self.device,
                 )
@@ -174,4 +206,4 @@ class WSDClassifier(BaseClassifier):
             ]
             # dim=1: aggregate over all senses for each pos tag
         ).nanmean(dim=1)
-        return f1
+        return metric
