@@ -74,14 +74,14 @@ def test(args: Namespace):
         )
         log_save_dir = (
             os.path.join(
-                args.log_dir, args.encoder_name, args.treebank_name, args.task
+                args.log_dir, hparams.encoder_name, hparams.treebank_name, hparams.task
             ),
         )
     elif hparams.task == "WSD":
         datamodule = WSDDataModule(
             hparams.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
         )
-        log_save_dir = os.path.join(args.log_dir, args.encoder_name, args.task)
+        log_save_dir = os.path.join(args.log_dir, hparams.encoder_name, hparams.task)
     datamodule.prepare_data()
     datamodule.setup()
 
