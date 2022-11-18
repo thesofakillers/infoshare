@@ -42,7 +42,7 @@ def train(args: Namespace):
             args.task,
         )
     elif args.task == "WSD":
-        metric = "f1"
+        metric = "acc"
         datamodule = WSDDataModule(
             args.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
         )
