@@ -1,3 +1,4 @@
 # ignore jupyternotebooks and tex in GH stats. See https://github.com/github/linguist/blob/master/docs/overrides.md
 *.ipynb linguist-documentation
-*.tex linguist-documentation
+*.tex linguist-vendored
+*.sty linguist-vendored
