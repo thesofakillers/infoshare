@@ -41,7 +41,7 @@ def train(args: Namespace):
             args.treebank_name,
             args.task,
         )
-    elif args.task == "WSD":
+    elif args.task in {"WSD", "SWSD"}:
         metric = "acc"
         datamodule = WSDDataModule(
             args.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
@@ -55,7 +55,7 @@ def train(args: Namespace):
         model_class = models.DEPClassifier
     elif args.task == "POS":
         model_class = models.POSClassifier
-    elif args.task == "WSD":
+    elif args.task in {"WSD", "SWSD"}:
         model_class = models.WSDClassifier
         # additional args necessary
         args.pos_map = datamodule.pos_id2cname

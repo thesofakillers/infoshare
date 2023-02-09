@@ -42,7 +42,7 @@ class BaseDataModule(LightningDataModule):
             "--task",
             type=str,
             default="POS",
-            choices=["DEP", "POS", "WSD"],
+            choices=["DEP", "POS", "WSD", "SWSD"],
             help="The task to train the probing classifier on.",
         )
 
