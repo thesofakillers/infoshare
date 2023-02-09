@@ -1,5 +1,5 @@
 from argparse import ArgumentParser, Namespace
-from data import UDDataModule, WSDDataModule, BaseDataModule
+from datamodules import UDDataModule, WSDDataModule, BaseDataModule, LSWSDDataModule
 from functools import partial
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
@@ -41,12 +41,21 @@ def train(args: Namespace):
             args.treebank_name,
             args.task,
         )
-    elif args.task in {"WSD", "LSWSD"}:
+    elif args.task in {"WSD"}:
         metric = "acc"
         datamodule = WSDDataModule(
             args.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
         )
         log_save_dir = os.path.join(args.log_dir, args.encoder_name, args.task)
+    elif args.task in {"LSWSD"}:
+        metric = "acc"
+        datamodule = LSWSDDataModule(
+            args.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
+        )
+        log_save_dir = os.path.join(args.log_dir, args.encoder_name, args.task)
+    else:
+        raise ValueError(f"Unknown task {args.task}")
+
     datamodule.prepare_data()
     datamodule.setup("fit")
 

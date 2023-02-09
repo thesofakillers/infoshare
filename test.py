@@ -1,5 +1,5 @@
 from argparse import ArgumentParser, Namespace
-from data import UDDataModule, WSDDataModule
+from datamodules import UDDataModule, WSDDataModule, LSWSDDataModule
 from functools import partial
 import models
 from pytorch_lightning import seed_everything, Trainer
@@ -77,8 +77,13 @@ def test(args: Namespace):
                 args.log_dir, hparams.encoder_name, hparams.treebank_name, hparams.task
             ),
         )
-    elif hparams.task in {"WSD", "LSWSD"}:
+    elif hparams.task in {"WSD"}:
         datamodule = WSDDataModule(
+            hparams.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
+        )
+        log_save_dir = os.path.join(args.log_dir, hparams.encoder_name, hparams.task)
+    elif hparams.task in {"LSWSD"}:
+        datamodule = LSWSDDataModule(
             hparams.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
         )
         log_save_dir = os.path.join(args.log_dir, hparams.encoder_name, hparams.task)

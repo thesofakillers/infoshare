@@ -1,5 +1,5 @@
 from argparse import ArgumentParser, Namespace
-from data import UDDataModule
+from datamodules import UDDataModule
 from functools import partial
 from models import *
 from pytorch_lightning import seed_everything, Trainer
