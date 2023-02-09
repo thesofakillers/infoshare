@@ -42,7 +42,7 @@ class BaseDataModule(LightningDataModule):
             "--task",
             type=str,
             default="POS",
-            choices=["DEP", "POS", "WSD", "SWSD"],
+            choices=["DEP", "POS", "WSD", "LSWSD"],
             help="The task to train the probing classifier on.",
         )
 
@@ -268,7 +268,7 @@ class WSDDataModule(BaseDataModule):
         super().__init__()
         self.save_hyperparameters(ignore=["tokenize_fn"])
 
-        valid_tasks = ["WSD"]
+        valid_tasks = ["WSD", "LSWSD"]
         assert task in valid_tasks, f"Task must be one of {valid_tasks}."
 
         self.tokenize_fn = tokenize_fn

@@ -53,7 +53,7 @@ poetry export --without-hashes -o requirements.txt
 ├── test_xlingual.py              # run testing across languages
 ├── infer_demo.ipynb              # notebook for inference demo
 ├── cross_neutralizing.ipynb      # notebook for ?
-├── swsd_words.ipynb              # notebook for finding SWSD candidate lemmas
+├── lswsd_words.ipynb              # notebook for finding LSWSD candidate lemmas
 ├── report_figures.ipynb          # notebook for generating figures in the report
 ├── cross_task_figs.ipynb         # additional notebook for cross-task XN figures
 ├── ud_stats.ipynb                # notebook for UD stats
@@ -63,7 +63,7 @@ poetry export --without-hashes -o requirements.txt
 ├── poetry.lock                   # dependencies metadata
 ├── pyproject.toml                # project metadata
 ├── requirements.txt              # required packages for PIP
-└── swsd_lemmas.txt               # lemmas used for SWSD
+└── lswsd_lemmas.txt              # lemmas used for LSWSD
 ```
 
 The above was generated with

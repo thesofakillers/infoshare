@@ -41,7 +41,7 @@ def test(args: Namespace):
         model_class = models.DEPClassifier
     elif hparams.task == "POS":
         model_class = models.POSClassifier
-    elif hparams.task in {"WSD", "SWSD"}:
+    elif hparams.task in {"WSD", "LSWSD"}:
         model_class = models.WSDClassifier
     else:
         raise Exception(f"Unsupported task: {hparams.task}")
@@ -77,7 +77,7 @@ def test(args: Namespace):
                 args.log_dir, hparams.encoder_name, hparams.treebank_name, hparams.task
             ),
         )
-    elif hparams.task in {"WSD", "SWSD"}:
+    elif hparams.task in {"WSD", "LSWSD"}:
         datamodule = WSDDataModule(
             hparams.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
         )
