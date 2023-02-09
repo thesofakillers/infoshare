@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 
 from .base import BaseDataModule
-from ..utils import download_and_unzip, list_of_zero, just_zero
+from utils import download_and_unzip, list_of_zero, just_zero
 
 
 class WSDDataModule(BaseDataModule):
