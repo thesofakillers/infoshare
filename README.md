@@ -46,8 +46,8 @@ poetry export --without-hashes -o requirements.txt
 │   ├── dep_classifier.py
 │   ├── pos_classifier.py
 │   └── wsd_classifier.py
+├── datamodules/                  # handle data loading, processing
 ├── utils.py                      # general utils
-├── data.py                       # handle data loading, processing
 ├── train.py                      # run training
 ├── test.py                       # run testing
 ├── test_xlingual.py              # run testing across languages
