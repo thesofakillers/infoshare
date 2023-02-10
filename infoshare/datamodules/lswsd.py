@@ -85,53 +85,52 @@ class LSWSDDataModule(BaseDataModule):
         self.pos_cname2id = {tag: i for i, tag in enumerate(self.pos_id2cname)}
         self.has_setup = False
 
-        def prepare_data(self) -> None:
-            """Takes care of downloading data"""
-            if self.has_setup:
-                return
-            if os.path.exists(self.data_dir):
-                print("Data already exists. Skipping download.")
-                self.raw_dset_dict = datasets.load_from_disk(self.raw_dir)
-                return
+    def prepare_data(self) -> None:
+        """Takes care of downloading data"""
+        if self.has_setup:
+            return
+        if os.path.exists(self.data_dir):
+            print("Data already exists. Skipping download.")
+            self.raw_dset_dict = datasets.load_from_disk(self.raw_dir)
+            return
 
-            print("Downloading SemCor from HuggingFace")
-            semcor = datasets.load_dataset("thesofakillers/SemCor")
+        print("Downloading SemCor from HuggingFace")
+        semcor = datasets.load_dataset("thesofakillers/SemCor")
 
-            print("Performing minor preprocessing")
-            # put them all together
-            dataset = datasets.concatenate_datasets([semcor[i] for i in semcor])
-            # shuffle
-            dataset = dataset.shuffle(seed=42)
-            # train, val, test split (80%, 10%, 10%)
-            trainval_test_dict = dataset.train_test_split(test_size=0.1, seed=42)
-            train_val_dict = trainval_test_dict["train"].train_test_split(
-                test_size=1 / 9, seed=42
-            )
-            self.raw_dset_dict = datasets.DatasetDict(
-                {
-                    "train": train_val_dict["train"],
-                    "val": train_val_dict["test"],
-                    "test": trainval_test_dict["test"],
-                }
-            )
-            print("Saving to disk")
-            os.makedirs(self.raw_dir, exist_ok=True)
-            dataset.save_to_disk(self.raw_dir)
+        print("Performing minor preprocessing")
+        # put them all together
+        dataset = datasets.concatenate_datasets([semcor[i] for i in semcor])
+        # shuffle
+        dataset = dataset.shuffle(seed=42)
+        # train, val, test split (80%, 10%, 10%)
+        trainval_test_dict = dataset.train_test_split(test_size=0.1, seed=42)
+        train_val_dict = trainval_test_dict["train"].train_test_split(
+            test_size=1 / 9, seed=42
+        )
+        self.raw_dset_dict = datasets.DatasetDict(
+            {
+                "train": train_val_dict["train"],
+                "val": train_val_dict["test"],
+                "test": trainval_test_dict["test"],
+            }
+        )
+        print("Saving to disk")
+        os.makedirs(self.raw_dir, exist_ok=True)
+        self.raw_dset_dict.save_to_disk(self.raw_dir)
 
-        def setup(self, stage: Optional[str] = None) -> None:
-            if self.has_setup:
-                return
-            # these are the lemmas we are interested in
-            with open("lswsd_lemmas.txt", "r") as f:
-                self.lemmas = set(f.read().splitlines())
-            self.id_to_cname = {"unk"}
-            # processing so that the right columns are available for our classifier
-            self.train = self.process_dset(self.raw_dset_dict["train"], split="train")
-            self.val = self.process_dset(self.raw_dset_dict["val"], split="val")
-            self.test = self.process_dset(self.raw_dset_dict["test"], split="test")
+    def setup(self, stage: Optional[str] = None) -> None:
+        if self.has_setup:
+            return
+        # these are the lemmas we are interested in
+        with open("lswsd_lemmas.txt", "r") as f:
+            self.lemmas = set(f.read().splitlines())
+        self.id_to_cname = set()
+        # processing so that the right columns are available for our classifier
+        self.train = self.process_dset(self.raw_dset_dict["train"], split="train")
+        self.val = self.process_dset(self.raw_dset_dict["val"], split="val")
+        self.test = self.process_dset(self.raw_dset_dict["test"], split="test")
 
     def process_dset(self, dset: Dataset, split: str) -> Dataset:
-        # TODO
         """
         Processes the raw dataset so to only consider the lexical senses that
         have been selected. The resulting dataset contains the following columns.
@@ -151,9 +150,7 @@ class LSWSDDataModule(BaseDataModule):
             proc_dataset = datasets.load_from_disk(processed_path)
             if split == "train":
                 self.id_to_cname = proc_dataset.features["senses"].feature.names
-                self.cname_to_id = {
-                    sense: i for i, sense in enumerate(self.id_to_cname)
-                }
+                self._handle_cname_maps()
             print("Done.")
 
             return proc_dataset
@@ -165,7 +162,7 @@ class LSWSDDataModule(BaseDataModule):
         if split == "train":
             # add "unk" at beginning
             self.id_to_cname = list(self.id_to_cname)
-            self.cname_to_id = {sense: i for i, sense in enumerate(self.id_to_cname)}
+            self._handle_cname_maps()
 
         filtered_dset = dset.filter(
             self._is_in_whitelisted,
@@ -187,18 +184,18 @@ class LSWSDDataModule(BaseDataModule):
         sentence_df = sentence_df.reset_index().drop(
             columns=["tagfile", "pnum", "snum"]
         )
-        sentence_df.index.name = "id"
+        sentence_df["id"] = sentence_df.index
 
         # converting back into a HF dataset for future use
         proc_dataset = Dataset.from_pandas(
             sentence_df,
             features=Features(
                 {
-                    "id": Value("string"),
+                    "id": Value("int64"),
                     "tokens": Sequence(Value("string")),
                     "lemmas": Sequence(Value("string")),
                     "idxs": Sequence(Value("int64")),
-                    "senses": Sequence(ClassLabel(names=self.id_to_cname)),
+                    "senses": Sequence(ClassLabel(names=list(self.cname_to_id.keys()))),
                     "pos": Sequence(
                         ClassLabel(
                             num_classes=len(self.UD_POS_TAGS), names=self.pos_id2cname
@@ -214,6 +211,13 @@ class LSWSDDataModule(BaseDataModule):
 
         print("Done.")
         return proc_dataset
+
+    def _handle_cname_maps(self):
+        """Add 'unk' to the beginning of the list of sense names and computes inverse"""
+        self.cname_to_id = defaultdict(
+            lambda: 0, {sense: i for i, sense in enumerate(self.id_to_cname)}
+        )
+        self.id_to_cname.insert(0, "unk")
 
     def _filter_cands_map_ids(self, input_row):
         """Keeps only the lexical samples and maps senses and pos to ids"""
@@ -243,15 +247,17 @@ class LSWSDDataModule(BaseDataModule):
         self, dset: Dataset, train: bool = False
     ) -> Tuple[Dataset, Set[Tuple[str]]]:
         whitelisted_sentences = set()
-        for entry in tqdm(dset, total=len(dset)):
+        senses = np.empty(len(dset), dtype="str")
+        for i, entry in tqdm(enumerate(dset), total=len(dset)):
+            sense = str(entry["lemma"]) + "%" + str(entry["lexsn"])
+            senses[i] = sense
             if entry["lemma"] in self.lemmas:
                 whitelisted_sentences.add(
                     (entry["tagfile"], entry["pnum"], entry["snum"])
                 )
-                sense = entry["lemma"] + "%" + entry["lexsn"]
                 if train:
-                    self.id_to_cname.add(entry["sense"])
-                entry["sense"] = sense
+                    self.id_to_cname.add(sense)
+        dset = dset.add_column("sense", senses)
         return dset, whitelisted_sentences
 
     def get_collate_fn(self):

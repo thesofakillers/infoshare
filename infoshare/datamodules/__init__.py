@@ -2,7 +2,6 @@ import os
 
 from argparse import ArgumentParser
 
-from infoshare.datamodules.base import BaseDataModule
 from infoshare.datamodules.ud import UDDataModule
 from infoshare.datamodules.wsd import WSDDataModule
 from infoshare.datamodules.lswsd import LSWSDDataModule
@@ -37,6 +36,17 @@ if __name__ == "__main__":
     )
     wsd.prepare_data()
     wsd.setup()
+
+    print("Setting up LSWSD")
+    lswsd = LSWSDDataModule(
+        "LSWSD",
+        tokenize_fn,
+        args.data_dir,
+        args.batch_size,
+        args.num_workers,
+    )
+    lswsd.prepare_data()
+    lswsd.setup()
 
     print("Setting up UD pos")
     ud_pos = UDDataModule(
