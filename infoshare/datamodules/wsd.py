@@ -161,7 +161,6 @@ class WSDDataModule(BaseDataModule):
         """
         processed_path = os.path.join(dataset_path, "processed")
         dataset_name = dataset_path.split("/")[-1]
-        print(f"Creating dataset for {dataset_name}")
 
         gold_path = os.path.join(dataset_path, f"{dataset_name.lower()}.gold.key.txt")
         with open(gold_path, "r") as f:
@@ -176,10 +175,10 @@ class WSDDataModule(BaseDataModule):
 
         # don't need to do the remaining processing if we've already done it
         if os.path.exists(processed_path):
-            print("Dataset already processed. Loading from disk")
             dataset = load_from_disk(processed_path)
-
             return dataset
+        print(f"Processing dataset: {dataset_name}")
+
         # parse XML
         data_tree = ET.parse(f"{dataset_path}/{dataset_name.lower()}.data.xml")
         data_root = data_tree.getroot()
