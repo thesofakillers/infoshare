@@ -4,13 +4,11 @@ import urllib.request
 import glob
 import os
 import zipfile
+import re
 
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 import numpy as np
 import pandas as pd
-import re
-
-
 from tqdm import tqdm
 
 TAG_REGEX = r".*\/evaluation_(\w+)\/.*"

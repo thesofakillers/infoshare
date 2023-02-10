@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from datasets.arrow_dataset import Dataset
 from transformers import BatchEncoding
 
-from .base import BaseDataModule
+from infoshare.datamodules.base import BaseDataModule
 
 
 class UDDataModule(BaseDataModule):

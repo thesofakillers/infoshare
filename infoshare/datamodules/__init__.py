@@ -2,10 +2,10 @@ import os
 
 from argparse import ArgumentParser
 
-from .base import BaseDataModule
-from .ud import UDDataModule
-from .wsd import WSDDataModule
-from .lswsd import LSWSDDataModule
+from infoshare.datamodules.base import BaseDataModule
+from infoshare.datamodules.ud import UDDataModule
+from infoshare.datamodules.wsd import WSDDataModule
+from infoshare.datamodules.lswsd import LSWSDDataModule
 
 
 if __name__ == "__main__":
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     )
     print("Setting up WSD")
     wsd = WSDDataModule(
-        args.task,
+        "WSD",
         tokenize_fn,
         args.data_dir,
         args.batch_size,
@@ -41,6 +41,7 @@ if __name__ == "__main__":
     print("Setting up UD pos")
     ud_pos = UDDataModule(
         "POS",
+        args.treebank_name,
         tokenize_fn,
         args.data_dir,
         args.batch_size,
@@ -52,6 +53,7 @@ if __name__ == "__main__":
     print("Setting up UD DEP")
     ud_dep = UDDataModule(
         "DEP",
+        args.treebank_name,
         tokenize_fn,
         args.data_dir,
         args.batch_size,

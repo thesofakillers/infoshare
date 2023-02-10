@@ -13,7 +13,7 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 
-from .base import BaseDataModule
+from infoshare.datamodules.base import BaseDataModule
 
 
 class LSWSDDataModule(BaseDataModule):

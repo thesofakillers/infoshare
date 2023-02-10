@@ -1,7 +1,9 @@
-from .base_classifier import BaseClassifier
+from typing import Dict, Tuple
+
 from torch import nn, Tensor
 from transformers import BatchEncoding
-from typing import Dict, Tuple
+
+from infoshare.models.base_classifier import BaseClassifier
 
 
 class POSClassifier(BaseClassifier):

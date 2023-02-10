@@ -1,10 +1,10 @@
+from typing import List, Tuple
 from argparse import ArgumentParser
+
 from torch import Tensor
 from torch.nn import Module
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoModel, BatchEncoding
-from typing import List, Tuple
-
 import numpy as np
 import torch
 

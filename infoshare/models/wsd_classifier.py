@@ -1,12 +1,12 @@
-from .base_classifier import BaseClassifier
+from typing import Set, Tuple, Dict, List, Union, Optional
+
 from torch import nn, Tensor, LongTensor
 from torch.nn.utils.rnn import pad_sequence
 from transformers import BatchEncoding
-from typing import Set, Tuple, Dict, List, Union, Optional
-
 import torch
 import torchmetrics.functional as TF
 
+from infoshare.models.base_classifier import BaseClassifier
 
 class WSDClassifier(BaseClassifier):
     def __init__(

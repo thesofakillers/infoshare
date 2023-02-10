@@ -1,14 +1,15 @@
+import os
 from argparse import ArgumentParser, Namespace
-from datamodules import UDDataModule, WSDDataModule, LSWSDDataModule
 from functools import partial
-import models
+
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from transformers import AutoTokenizer, logging
-from utils import get_experiment_name
-
-import os
 import torch
+
+from infoshare.utils import get_experiment_name
+import infoshare.models as models
+from infoshare.datamodules import UDDataModule, WSDDataModule, LSWSDDataModule
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 logging.set_verbosity_error()

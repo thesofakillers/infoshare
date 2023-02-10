@@ -1,11 +1,12 @@
+from typing import Dict, List, Tuple
 from argparse import ArgumentParser
-from .base_classifier import BaseClassifier
+
 from torch import nn, Tensor
 from torch.nn.utils.rnn import pad_sequence
 from transformers import BatchEncoding
-from typing import Dict, List, Tuple
-
 import torch
+
+from infoshare.models.base_classifier import BaseClassifier
 
 
 class DEPClassifier(BaseClassifier):

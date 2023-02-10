@@ -1,18 +1,19 @@
-from .bert_encoder import BERTEncoderForWordClassification
+from typing import Callable, Dict, List, Optional, Tuple, Union
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from collections import defaultdict
 from functools import partial
+
 from pytorch_lightning import LightningModule
 from torch import nn, Tensor
 from torch.nn.utils.rnn import pad_sequence
 from torch.optim import AdamW, Optimizer
 from transformers import AutoTokenizer
-from typing import Callable, Dict, List, Optional, Tuple, Union
-
 import torch
 import torch.nn.functional as F
 import torchmetrics.functional as TF
+
+from infoshare.models.bert_encoder import BERTEncoderForWordClassification
 
 
 class BaseClassifier(LightningModule, metaclass=ABCMeta):
