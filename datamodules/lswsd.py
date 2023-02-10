@@ -59,69 +59,28 @@ class LSWSDDataModule(BaseDataModule):
         self.raw_dir = os.path.join(self.data_dir, "raw")
         self.processed_dir = os.path.join(self.data_dir, "processed")
 
+        # fmt: off
         self.UD_POS_TAGS = [
-            "NOUN",
-            "PUNCT",
-            "ADP",
-            "NUM",
-            "SYM",
-            "SCONJ",
-            "ADJ",
-            "PART",
-            "DET",
-            "CCONJ",
-            "PROPN",
-            "PRON",
-            "X",
-            "_",
-            "ADV",
-            "INTJ",
-            "VERB",
-            "AUX",
+            "NOUN", "PUNCT", "ADP", "NUM", "SYM", "SCONJ", "ADJ", "PART", "DET",
+            "CCONJ", "PROPN", "PRON", "X", "_", "ADV", "INTJ", "VERB", "AUX",
         ]
+        # https://universaldependencies.org/tagset-conversion/en-penn-uposf.html
         self.penn_to_ud = defaultdict(
             lambda: "_",
-            {
-                "NN": "NOUN",
-                "WRB": "ADV",
-                "AFX": "ADJ",
-                "RB": "ADV",
-                "VB": "VERB",
-                "JJ": "ADJ",
-                "CC": "CCONJ",
-                "WDT": "DET",
-                "TO": "PART",
-                "CD": "NUM",
-                "PRP": "PRON",
-                "DT": "DET",
-                "IN": "ADP",
-                "MD": "VERB",
-                "PRP$": "DET",
-                "VBD": "VERB",
-                "POS": "PART",
-                "VBP": "VERB",
-                "WP": "PRON",
-                "VBZ": "VERB",
-                "NNP": "PROPN",
-                "EX": "PRON",
-                "VBG": "VERB",
-                "NNS": "NOUN",
-                "PDT": "DET",
-                "UH": "INTJ",
-                "FW": "X",
-                "WP$": "DET",
-                "NNPS": "PROPN",
-                "RBR": "ADV",
-                "MD|VB": "VERB",
-                "MD": "VERB",
-                "RP": "ADP",
-                "JJR": "ADJ",
-                "LS": "X",
-                "RBS": "ADV",
-                "JJS": "ADJ",
-                "NN|SYM": "SYM",
+            { # conversion to JSON format courtesy of ChatGPT
+                "#": "SYM", "$": "SYM", "''": "PUNCT", ",": "PUNCT", "-LRB-": "PUNCT",
+                "-RRB-": "PUNCT", ".": "PUNCT", ":": "PUNCT", "AFX": "ADJ", "CC":
+                "CCONJ", "CD": "NUM", "DT": "DET", "EX": "PRON", "FW": "X", "HYPH":
+                "PUNCT", "IN": "ADP", "JJ": "ADJ", "JJR": "ADJ", "JJS": "ADJ", "LS":
+                "X", "MD": "VERB", "NIL": "X", "NN": "NOUN", "NNP": "PROPN", "NNPS":
+                "PROPN", "NNS": "NOUN", "PDT": "DET", "POS": "PART", "PRP": "PRON",
+                "PRP$": "DET", "RB": "ADV", "RBR": "ADV", "RBS": "ADV", "RP": "ADP",
+                "SYM": "SYM", "TO": "PART", "UH": "INTJ", "VB": "VERB", "VBD": "VERB",
+                "VBG": "VERB", "VBN": "VERB", "VBP": "VERB", "VBZ": "VERB", "WDT":
+                "DET", "WP": "PRON", "WP$": "DET", "WRB": "ADV", "``": "PUNCT",
             },
         )
+        # fmt: on
         self.pos_id2cname = self.UD_POS_TAGS
         self.pos_cname2id = {tag: i for i, tag in enumerate(self.pos_id2cname)}
         self.has_setup = False
