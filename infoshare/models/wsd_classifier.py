@@ -115,9 +115,21 @@ class WSDClassifier(BaseClassifier):
         elif metric_name == "acc":
             metric_fn = TF.accuracy
 
-        metric = metric_fn(
-            logits, targets, num_classes=self.hparams.n_classes, average="macro"
-        )
+        # Extract sequence length from number of senses to predict
+        seq_lens = [len(_) for _ in targets]
+
+        # calculate metric as the mean over all sentences
+        metric = torch.vstack(
+            [
+                metric_fn(
+                    preds=logits[i, : seq_lens[i], :],
+                    target=targets[i],
+                    num_classes=self.hparams.n_classes,
+                    average="micro",
+                )
+                for i in range(len(targets))
+            ]
+        ).nanmean(dim=0)
         self.log(log_name, metric, batch_size=b_size)
 
     def prepare_log_name(
