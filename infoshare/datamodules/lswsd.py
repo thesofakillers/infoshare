@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 
 from infoshare.datamodules.base import BaseDataModule
+from infoshare.utils import list_of_zero
 
 
 class LSWSDDataModule(BaseDataModule):
@@ -222,6 +223,14 @@ class LSWSDDataModule(BaseDataModule):
         self.cname_to_id = defaultdict(
             lambda: 0, {sense: i for i, sense in enumerate(self.id_to_cname)}
         )
+        lemma_to_sense_ids = {}
+        for sense in self.id_to_cname[1:]:  # skipping 'unk'
+            lemma = sense.split("%")
+            if lemma not in lemma_to_sense_ids:
+                lemma_to_sense_ids[lemma] = []
+            lemma_to_sense_ids[lemma].append(self.cname_to_id[sense])
+        self.lemma_to_sense_ids = defaultdict(list_of_zero, lemma_to_sense_ids)
+        self.num_classes = len(self.id_to_cname)
 
     def _reduce_to_salients(self, input_row):
         """Keeps only the senses and pos relevant to our lexical samples"""
