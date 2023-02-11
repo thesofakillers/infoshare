@@ -8,6 +8,7 @@ import torchmetrics.functional as TF
 
 from infoshare.models.base_classifier import BaseClassifier
 
+
 class WSDClassifier(BaseClassifier):
     def __init__(
         self,
@@ -54,47 +55,85 @@ class WSDClassifier(BaseClassifier):
         processed_batch: Dict,
         stage: str,
         prefix: str = "",
-        dataloader_idx: Optional[int] = None,
+        dloader_idx: Optional[int] = None,
     ):
         # log F1 score overall and per pos-tag (not per class)
-        batch_logits = processed_batch["logits"]
-        batch_targets = processed_batch["targets"]
-        batch_pos = processed_batch["pos"]
-        batch_lemmas = processed_batch["lemmas"]
+        b_logits = processed_batch["logits"]
+        b_targets = processed_batch["targets"]
+        b_pos = processed_batch["pos"]
+        b_lemmas = processed_batch["lemmas"]
 
-        batch_size = len(batch_logits)
-        all_sense_ids = set(range(self.hparams.n_classes))
+        b_size = len(b_logits)
 
-        (
-            batch_logits_per_pos,
-            batch_senses_per_pos,
-            num_classes,
-            n_pos_tags,
-        ) = self.prepare_metric_inputs(
-            batch_logits, batch_targets, batch_pos, batch_lemmas, all_sense_ids
+        # overall metrics
+        self.log_overall_metric(
+            b_logits, b_targets, stage, prefix, "f1", b_size, dloader_idx
         )
-        f1_per_pos: Tensor = self.calc_avg_metric(
-            batch_logits_per_pos,
-            batch_senses_per_pos,
-            num_classes,
-            n_pos_tags,
-            TF.f1_score,
-        )
-        self.log_single_metric(
-            f1_per_pos, "f1", batch_size, stage, dataloader_idx, prefix
-        )
-        acc_per_pos: Tensor = self.calc_avg_metric(
-            batch_logits_per_pos,
-            batch_senses_per_pos,
-            num_classes,
-            n_pos_tags,
-            TF.accuracy,
-        )
-        self.log_single_metric(
-            acc_per_pos, "acc", batch_size, stage, dataloader_idx, prefix
+        self.log_overall_metric(
+            b_logits, b_targets, stage, prefix, "acc", b_size, dloader_idx
         )
 
-    def log_single_metric(
+        if stage == "test":
+            # per-pos metrics
+            all_sense_ids = set(range(self.hparams.n_classes))
+
+            (
+                b_logits_per_pos,
+                b_senses_per_pos,
+                num_classes,
+                n_pos_tags,
+            ) = self.prepare_metric_inputs(
+                b_logits, b_targets, b_pos, b_lemmas, all_sense_ids
+            )
+            f1_per_pos: Tensor = self.calc_per_pos_metrics(
+                b_logits_per_pos, b_senses_per_pos, num_classes, n_pos_tags, TF.f1_score
+            )
+            self.log_per_pos_metric(
+                f1_per_pos, "f1", b_size, stage, dloader_idx, prefix
+            )
+            acc_per_pos: Tensor = self.calc_per_pos_metrics(
+                b_logits_per_pos, b_senses_per_pos, num_classes, n_pos_tags, TF.accuracy
+            )
+            self.log_per_pos_metric(
+                acc_per_pos, "acc", b_size, stage, dloader_idx, prefix
+            )
+
+    def log_overall_metric(
+        self,
+        logits,
+        targets,
+        stage: str,
+        prefix: str,
+        metric_name: str,
+        b_size: int,
+        dloader_idx: Optional[int] = None,
+    ):
+        log_name = self.prepare_log_name(prefix, stage, metric_name, dloader_idx)
+
+        if metric_name == "f1":
+            metric_fn = TF.f1_score
+        elif metric_name == "acc":
+            metric_fn = TF.accuracy
+
+        metric = metric_fn(
+            logits, targets, num_classes=self.hparams.n_classes, average="macro"
+        )
+        self.log(log_name, metric, batch_size=b_size)
+
+    def prepare_log_name(
+        self,
+        prefix: str,
+        stage: str,
+        metric_name: str,
+        dataloader_idx: Optional[int] = None,
+    ):
+        log_name = f"{prefix}{stage}_{metric_name}"
+        if stage == "test":
+            curr_dataset = self.trainer.datamodule.idx_to_dataset[dataloader_idx]
+            log_name = f"{curr_dataset}/" + log_name
+        return log_name
+
+    def log_per_pos_metric(
         self,
         metric_per_pos: Tensor,
         metric_name: str,
@@ -103,17 +142,7 @@ class WSDClassifier(BaseClassifier):
         dataloader_idx: Optional[int] = None,
         prefix: str = "",
     ):
-        log_name = f"{prefix}{stage}_{metric_name}"
-        if stage == "test":
-            curr_dataset = self.trainer.datamodule.idx_to_dataset[dataloader_idx]
-            log_name = f"{curr_dataset}/" + log_name
-
-        metric_avg = metric_per_pos.nanmean()  # this is part of the shortcut
-        self.log(log_name, metric_avg, batch_size=batch_size)
-
-        if stage != "test":
-            # No need to log per-pos-tag metric for train and val
-            return
+        log_name = self.prepare_log_name(prefix, stage, metric_name, dataloader_idx)
 
         # log average metric per-pos tag
         for i, metric_i in enumerate(metric_per_pos):
@@ -177,7 +206,7 @@ class WSDClassifier(BaseClassifier):
         return batch_logits_per_pos, batch_senses_per_pos, num_classes, n_pos_tags
 
     @torch.no_grad()
-    def calc_avg_metric(
+    def calc_per_pos_metrics(
         self,
         batch_logits_per_pos: List[Tensor],
         batch_senses_per_pos: List[Tensor],
