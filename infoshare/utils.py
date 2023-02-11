@@ -256,3 +256,10 @@ def just_zero():
     see https://stackoverflow.com/a/16439720/9889508
     """
     return 0
+
+def just_underscore():
+    """
+    Necessary for pickling our default dicts
+    see https://stackoverflow.com/a/16439720/9889508
+    """
+    return "_"

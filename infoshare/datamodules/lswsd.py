@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 from infoshare.datamodules.base import BaseDataModule
-from infoshare.utils import list_of_zero
+from infoshare.utils import just_underscore, just_zero, list_of_zero
 
 
 class LSWSDDataModule(BaseDataModule):
@@ -66,7 +66,7 @@ class LSWSDDataModule(BaseDataModule):
         ]
         # https://universaldependencies.org/tagset-conversion/en-penn-uposf.html
         self.penn_to_ud = defaultdict(
-            lambda: "_",
+            just_underscore,
             { # conversion to JSON format courtesy of ChatGPT
                 "#": "SYM", "$": "SYM", "''": "PUNCT", ",": "PUNCT", "-LRB-": "PUNCT",
                 "-RRB-": "PUNCT", ".": "PUNCT", ":": "PUNCT", "AFX": "ADJ", "CC":
@@ -221,7 +221,7 @@ class LSWSDDataModule(BaseDataModule):
     def _handle_cname_maps(self):
         """Add 'unk' to the beginning of the list of sense names and computes inverse"""
         self.cname_to_id = defaultdict(
-            lambda: 0, {sense: i for i, sense in enumerate(self.id_to_cname)}
+            just_zero, {sense: i for i, sense in enumerate(self.id_to_cname)}
         )
         lemma_to_sense_ids = {}
         for sense in self.id_to_cname[1:]:  # skipping 'unk'
@@ -250,8 +250,7 @@ class LSWSDDataModule(BaseDataModule):
         return np.where(agg_input.isin(self.lemmas))[0]
 
     def get_collate_fn(self):
-        if self.hparams.task == "WSD":
-            return self.wsd_collate_fn
+        return self.wsd_collate_fn
 
     def wsd_collate_fn(
         self, batch: List[Dict[str, Any]]
