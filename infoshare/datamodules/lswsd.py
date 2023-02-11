@@ -225,7 +225,7 @@ class LSWSDDataModule(BaseDataModule):
         )
         lemma_to_sense_ids = {}
         for sense in self.id_to_cname[1:]:  # skipping 'unk'
-            lemma = sense.split("%")
+            lemma = sense.split("%")[0]
             if lemma not in lemma_to_sense_ids:
                 lemma_to_sense_ids[lemma] = []
             lemma_to_sense_ids[lemma].append(self.cname_to_id[sense])
