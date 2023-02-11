@@ -42,8 +42,10 @@ def test(args: Namespace):
         model_class = models.DEPClassifier
     elif hparams.task == "POS":
         model_class = models.POSClassifier
-    elif hparams.task in {"WSD", "LSWSD"}:
+    elif hparams.task == "WSD":
         model_class = models.WSDClassifier
+    elif hparams.task == "LSWSD":
+        model_class = models.LSWSDClassifier
     else:
         raise Exception(f"Unsupported task: {hparams.task}")
 

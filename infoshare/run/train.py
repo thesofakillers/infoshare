@@ -71,7 +71,10 @@ def train(args: Namespace):
     elif args.task == "POS":
         model_class = models.POSClassifier
     elif args.task in {"WSD", "LSWSD"}:
-        model_class = models.WSDClassifier
+        if args.task == "WSD":
+            model_class = models.WSDClassifier
+        else:
+            model_class = models.LSWSDClassifier
         # additional args necessary
         args.pos_map = datamodule.pos_id2cname
         args.lemma_to_sense_ids = datamodule.lemma_to_sense_ids

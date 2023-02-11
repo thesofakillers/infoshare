@@ -3,3 +3,4 @@ from infoshare.models.bert_encoder import BERTEncoderForWordClassification
 from infoshare.models.dep_classifier import DEPClassifier
 from infoshare.models.pos_classifier import POSClassifier
 from infoshare.models.wsd_classifier import WSDClassifier
+from infoshare.models.lswsd_classifier import LSWSDClassifier
