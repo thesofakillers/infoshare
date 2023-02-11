@@ -186,7 +186,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         if not self.has_neutralizer:
             # Perform standard testing
             self.log_metrics(
-                processed_batch, stage="test", prefix="", dataloader_idx=dataloader_idx
+                processed_batch, stage="test", prefix="", dloader_idx=dataloader_idx
             )
         else:
             # Perform the testing on neutralized embeddings
@@ -197,7 +197,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
                 processed_batch,
                 stage="test",
                 prefix=f"{self.neutralizer}/",
-                dataloader_idx=dataloader_idx,
+                dloader_idx=dataloader_idx,
             )
 
     def subtract_centroid(self, embs: Tensor) -> Tensor:
@@ -256,7 +256,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         processed_batch: Dict,
         stage: str,
         prefix: str = "",
-        dataloader_idx: Optional[int] = None,
+        dloader_idx: Optional[int] = None,
     ):
         batch_logits = processed_batch["logits"]
         targets = processed_batch["targets"]
