@@ -1,0 +1,20 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_titanrtx_shared_course
+#SBATCH --gres=gpu:1
+#SBATCH --job-name=LSWSD
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=3
+#SBATCH --time=48:00:00
+#SBATCH --mem=32000M
+#SBATCH --output=lisa/outputs/lswsd_train_%A.out
+
+module purge
+module load 2021
+module load Anaconda3/2021.05
+
+source activate bert-infoshare
+
+srun python -u infoshare/run/train.py --task LSWSD --num_workers 3 \
+  --aggregation first \
+  --probe_layer 12
