@@ -183,7 +183,7 @@ if __name__ == "__main__":
     # Encoder arguments
     models.BERTEncoderForWordClassification.add_model_specific_args(parser)
 
-    # Classifier arguments. POS and WSD covered by Base. DEP has additional args.
+    # Classifier arguments. POS and WSD, LSWSD covered by Base. DEP has additional args.
     models.BaseClassifier.add_model_specific_args(parser)
     models.DEPClassifier.add_model_specific_args(parser)
 
