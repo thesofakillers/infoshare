@@ -2,6 +2,7 @@ import os
 
 from argparse import ArgumentParser
 
+from infoshare.datamodules.base import BaseDataModule
 from infoshare.datamodules.ud import UDDataModule
 from infoshare.datamodules.wsd import WSDDataModule
 from infoshare.datamodules.lswsd import LSWSDDataModule
