@@ -17,7 +17,7 @@ class WSDClassifier(BaseClassifier):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.save_hyperparameters(pos_map, lemma_to_sense_ids)
+        self.save_hyperparameters()
 
     def get_classifier_head(self, n_hidden: int, n_classes: int) -> nn.Module:
         return nn.Sequential(

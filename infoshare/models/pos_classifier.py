@@ -7,6 +7,10 @@ from infoshare.models.base_classifier import BaseClassifier
 
 
 class POSClassifier(BaseClassifier):
+    def __init__(**kwargs):
+        super().__init__(**kwargs)
+        self.save_hyperparameters()
+
     def get_classifier_head(self, n_hidden: int, n_classes: int) -> nn.Module:
         return nn.Sequential(
             nn.Linear(n_hidden, n_hidden),

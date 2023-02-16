@@ -10,6 +10,10 @@ from infoshare.models.base_classifier import BaseClassifier
 
 
 class DEPClassifier(BaseClassifier):
+    def __init__(**kwargs):
+        super().__init__(**kwargs)
+        self.save_hyperparameters()
+
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
         parser = parent_parser.add_argument_group("DEP Classifier")

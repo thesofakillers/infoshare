@@ -46,6 +46,9 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
     ):
         """Abstract classifier class for probing tasks.
 
+        Note: most specific subclass should call self.save_hyperparameters()
+        in their __init__.
+
         Args:
             n_hidden (int): the number of hidden units in the classifier head
             n_classes (int): the number of target classes
@@ -55,7 +58,6 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
             compute_centroids (bool): whether to compute class centroids. Default True.
         """
         super().__init__()
-        self.save_hyperparameters()
 
         # maps target human-readable labels to their IDs
         self.label_to_id = {label: i for i, label in enumerate(self.hparams.class_map)}
