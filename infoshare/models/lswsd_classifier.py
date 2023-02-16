@@ -12,11 +12,21 @@ from infoshare.models.base_classifier import BaseClassifier
 
 class LSWSDClassifier(BaseClassifier):
     """
-    Same as POS Classifier but in forward we need to index the
+    Similar to POS Classifier but in forward we need to index the
     embeddings with salient idxs, since we no longer have a label for every word.
 
-    We also slightly modify the logging so that we also log F1 score, besides acc
+    We also modify the logging so that we also log F1 score, besides acc
+    Furthermore, when computing metrics, we only consider senses relevant to
+    the current lemma
     """
+
+    def __init__(
+        self,
+        lemma_to_sense_ids: Dict[str, List[int]],
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.save_hyperparameters(lemma_to_sense_ids)
 
     def get_classifier_head(self, n_hidden: int, n_classes: int) -> nn.Module:
         return nn.Sequential(
@@ -133,9 +143,7 @@ class LSWSDClassifier(BaseClassifier):
         elif metric_name == "f1":
             metric_fn = TF.f1_score
 
-        for b, (logits, targets, s_len, lemmas) in enumerate(
-            zip(batch_logits, batch_targets, sequence_lengths, batch_lemmas)
-        ):
+        for b, lemmas in enumerate(batch_lemmas):
             # go through the lemmas in the sequence
             for l, lemma in enumerate(lemmas):
                 possible_lemma_ids = self.hparams.lemma_to_sense_ids[lemma]

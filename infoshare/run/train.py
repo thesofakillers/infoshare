@@ -70,12 +70,12 @@ def train(args: Namespace):
         model_class = models.DEPClassifier
     elif args.task == "POS":
         model_class = models.POSClassifier
-    elif args.task == "LSWSD":
-        model_class = models.LSWSDClassifier
-    elif args.task == "WSD":
-        model_class = models.WSDClassifier
+    elif args.task in {"WSD", "LSWSD"}:
+        if args.task == "LSWSD":
+            model_class = models.LSWSDClassifier
+        elif args.task == "WSD":
+            model_class = models.WSDClassifier
         # additional args necessary
-        args.pos_map = datamodule.pos_id2cname
         args.lemma_to_sense_ids = datamodule.lemma_to_sense_ids
         args.compute_centroids = False
     else:
