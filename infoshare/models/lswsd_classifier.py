@@ -26,9 +26,9 @@ class LSWSDClassifier(BaseClassifier):
         **kwargs,
     ):
         self.save_hyperparameters()
-        print(self.hparams)
         super().__init__(**kwargs)
-        self.batch_outputs = []
+        self.batch_outputs = {"acc":[], "f1":[]}
+
 
     def get_classifier_head(self, n_hidden: int, n_classes: int) -> nn.Module:
         return nn.Sequential(
@@ -119,19 +119,19 @@ class LSWSDClassifier(BaseClassifier):
             batch_output["metrics"][
                 f"{prefix}{stage}_{metric_name}_{class_name}"
             ] = metric_i
-        self.batch_outputs.append(batch_output)
+        self.batch_outputs[metric_name].append(batch_output)
 
     def on_test_epoch_end(self) -> None:
         stage = "test"
-        total_elems = sum([batch["batch_size"] for batch in self.batch_outputs])
+        total_elems = sum([batch["batch_size"] for batch in self.batch_outputs['acc']])
         for metric in ["acc", "f1"]:
             for class_name in self.hparams.class_map:
                 overall_metric_class = torch.nansum(
-                    [
-                        b["metrics"][f"{stage}_{metric}_{class_name}"]
+                    torch.stack([
+                        b["metrics"][f"{self.prefix}{stage}_{metric}_{class_name}"]
                         * (b["batch_size"] / total_elems)
-                        for b in self.batch_outputs
-                    ]
+                        for b in self.batch_outputs[metric]
+                    ])
                 )
                 self.log(
                     f"{self.prefix}{stage}_{metric}_{class_name}",
