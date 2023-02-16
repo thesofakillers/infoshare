@@ -224,12 +224,16 @@ class LSWSDDataModule(BaseDataModule):
             just_zero, {sense: i for i, sense in enumerate(self.id_to_cname)}
         )
         lemma_to_sense_ids = {}
+        self.sense_id_to_lemma = ["" for _ in range(len(self.id_to_cname))]
         for sense in self.id_to_cname[1:]:  # skipping 'unk'
             lemma = sense.split("%")[0]
             if lemma not in lemma_to_sense_ids:
                 lemma_to_sense_ids[lemma] = []
-            lemma_to_sense_ids[lemma].append(self.cname_to_id[sense])
+            sense_id = self.cname_to_id[sense]
+            lemma_to_sense_ids[lemma].append(sense_id)
+            self.sense_id_to_lemma[sense_id] = lemma
         self.lemma_to_sense_ids = defaultdict(list_of_zero, lemma_to_sense_ids)
+        self.sense_id_to_lemma[0] = "unk"
         self.num_classes = len(self.id_to_cname)
 
     def _reduce_to_salients(self, input_row):
