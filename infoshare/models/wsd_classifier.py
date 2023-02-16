@@ -235,6 +235,7 @@ class WSDClassifier(BaseClassifier):
                     average=average,
                     num_classes=num_classes,
                     ignore_index=self.hparams.ignore_id,
+                    task='multiclass'
                 )
                 # account for unseen pos in batch
                 if len(batch_senses_per_pos[pos_id]) > 0

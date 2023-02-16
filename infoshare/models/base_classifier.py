@@ -301,6 +301,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
                     average=average,
                     num_classes=logits.shape[-1],
                     ignore_index=self.hparams.ignore_id,
+                    task='multiclass'
                 )
                 for i in range(len(targets))
             ]
