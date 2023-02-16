@@ -96,9 +96,13 @@ def train(args: Namespace):
             **vars(args),
         }
 
-        # Ignore "root" predictions for the loss/accuracy in the DEP task
-        if args.task == "DEP":
+        if args.task == "POS":
+            model_args["ignore_id"] = datamodule.cname_to_id["_"]
+        elif args.task == "DEP":
             model_args["ignore_id"] = datamodule.cname_to_id["root"]
+        elif args.task in {"WSD", "LSWSD"}:
+            model_args["ignore_id"] = datamodule.cname_to_id["unk"]
+
 
         model = model_class(**model_args)
 
