@@ -125,7 +125,7 @@ class LSWSDClassifier(BaseClassifier):
         stage = "test"
         total_elems = sum([batch["batch_size"] for batch in self.batch_outputs])
         for metric in ["acc", "f1"]:
-            for class_name in self.hparams.class_map.values():
+            for class_name in self.hparams.class_map:
                 overall_metric_class = torch.nansum(
                     [
                         b["metrics"][f"{stage}_{metric}_{class_name}"]
