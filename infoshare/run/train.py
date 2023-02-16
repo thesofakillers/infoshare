@@ -48,13 +48,13 @@ def train(args: Namespace):
             args.task,
         )
     elif args.task in {"WSD"}:
-        metric = "acc"
+        metric = "f1"
         datamodule = WSDDataModule(
             args.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
         )
         log_save_dir = os.path.join(args.log_dir, args.encoder_name, args.task)
     elif args.task in {"LSWSD"}:
-        metric = "acc"
+        metric = "f1"
         datamodule = LSWSDDataModule(
             args.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
         )
@@ -70,11 +70,10 @@ def train(args: Namespace):
         model_class = models.DEPClassifier
     elif args.task == "POS":
         model_class = models.POSClassifier
-    elif args.task in {"WSD", "LSWSD"}:
-        if args.task == "WSD":
-            model_class = models.WSDClassifier
-        else:
-            model_class = models.LSWSDClassifier
+    elif args.task == "LSWSD":
+        model_class = models.LSWSDClassifier
+    elif args.task == "WSD":
+        model_class = models.WSDClassifier
         # additional args necessary
         args.pos_map = datamodule.pos_id2cname
         args.lemma_to_sense_ids = datamodule.lemma_to_sense_ids
@@ -186,7 +185,7 @@ if __name__ == "__main__":
     # Encoder arguments
     models.BERTEncoderForWordClassification.add_model_specific_args(parser)
 
-    # Classifier arguments. POS and WSD, LSWSD covered by Base. DEP has additional args.
+    # Classifier arguments. POS, WSD and LSWSD covered by Base. DEP has additional args.
     models.BaseClassifier.add_model_specific_args(parser)
     models.DEPClassifier.add_model_specific_args(parser)
 

@@ -1,25 +1,46 @@
-from typing import Optional
+from typing import Tuple, Dict, Union, List
 
-from infoshare.models.wsd_classifier import WSDClassifier
+import torch.nn as nn
+from torch import Tensor
+from transformers import BatchEncoding
+from torch.nn.utils.rnn import pad_sequence
+
+from infoshare.models.base_classifier import BaseClassifier
 
 
-class LSWSDClassifier(WSDClassifier):
-    """Same as WSD Classifier but we override the prepare_log_name function"""
+class LSWSDClassifier(BaseClassifier):
+    """
+    Same as POS Classifier but in forward we need to index the
+    embeddings with salient idxs, since we no longer have a label for every word.
+    """
 
-    def prepare_log_name(
+    def get_classifier_head(self, n_hidden: int, n_classes: int) -> nn.Module:
+        return nn.Sequential(
+            nn.Linear(n_hidden, n_hidden),
+            nn.Tanh(),
+            nn.Linear(n_hidden, n_classes),
+        )
+
+    def forward(
         self,
-        prefix: str,
-        stage: str,
-        metric_name: str,
-        dataloader_idx: Optional[int] = None,
-    ):
-        """
-        exactly the same as in WSD classifier,
-        but now we only have one test dataloader
-        so we dont need to index
-        """
-        log_name = f"{prefix}{stage}_{metric_name}"
-        # if stage == "test":
-        #     curr_dataset = self.trainer.datamodule.idx_to_dataset[dataloader_idx]
-        #     log_name = f"{curr_dataset}/" + log_name
-        return log_name
+        encoded_input: BatchEncoding,
+        salient_idxs: Tensor,
+    ) -> Tuple[Tensor, Tensor]:
+        embeddings = self.bert(encoded_input)
+        # need to index the (padded) embeddings with salient idxs
+        embeddings = [emb[idx] for idx, emb in zip(salient_idxs, embeddings)]
+        # indexing breaks padding (max_sequence_len -> max_salient_len), so pad again
+        embeddings = pad_sequence(embeddings, batch_first=True)
+        logits = self.classifier(embeddings)
+        return embeddings, logits
+
+    def process_batch(self, batch: Tuple) -> Dict[str, Union[Tensor, List]]:
+        encodings, targets, idxs, pos, lemmas = batch
+        embeddings, logits = self(encodings, idxs)
+        return {
+            "embeddings": embeddings,
+            "logits": logits,
+            "targets": targets,
+            "pos": pos,
+            "lemmas": lemmas,
+        }
