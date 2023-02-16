@@ -5,7 +5,7 @@
 #SBATCH --job-name=LSWSD
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
-#SBATCH --time=48:00:00
+#SBATCH --time=00:20:00
 #SBATCH --mem=32000M
 #SBATCH --output=lisa/outputs/lswsd_train_%A.out
 
