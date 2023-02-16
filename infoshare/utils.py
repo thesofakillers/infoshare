@@ -257,6 +257,7 @@ def just_zero():
     """
     return 0
 
+
 def just_underscore():
     """
     Necessary for pickling our default dicts

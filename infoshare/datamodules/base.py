@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 
 from pytorch_lightning import LightningDataModule
 
+
 class BaseDataModule(LightningDataModule):
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:

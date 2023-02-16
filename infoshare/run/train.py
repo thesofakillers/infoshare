@@ -103,7 +103,6 @@ def train(args: Namespace):
         elif args.task in {"WSD", "LSWSD"}:
             model_args["ignore_id"] = datamodule.cname_to_id["unk"]
 
-
         model = model_class(**model_args)
 
     model.set_encoder(bert)
