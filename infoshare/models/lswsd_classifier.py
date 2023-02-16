@@ -98,23 +98,23 @@ class LSWSDClassifier(BaseClassifier):
     ):
         batch_size = len(logits)
 
-        # Calculate & log average micro accuracy
-        acc_avg = self.calculate_average_metric(logits, targets, lemmas, metric_name)
-        self.log(f"{stage}_acc", acc_avg, batch_size=batch_size)
+        # Calculate & log average micro metric
+        metric_avg = self.calculate_average_metric(logits, targets, lemmas, metric_name)
+        self.log(f"{stage}_{metric_name}", metric_avg, batch_size=batch_size)
 
         if stage != "test":
-            # No need to log per-class accuracy for train & val
+            # No need to log per-class metric for train & val
             return
 
-        # Calculate & log average accuracy per-class
-        acc_per_class = self.calculate_average_metric(
+        # Calculate & log average metric per-class
+        metric_per_class = self.calculate_average_metric(
             logits, targets, lemmas, metric_name, average="none"
         )
-        for i, acc_i in enumerate(acc_per_class):
+        for i, metric_i in enumerate(metric_per_class):
             class_name = self.hparams.class_map[i]
             self.log(
                 f"{prefix}{stage}_{metric_name}_{class_name}",
-                acc_i,
+                metric_i,
                 batch_size=batch_size,
             )
 
@@ -128,7 +128,7 @@ class LSWSDClassifier(BaseClassifier):
         average: str = "micro",
     ) -> Tensor:
         """
-        Calculates the mean accuracy based on the averaging method specified.
+        Calculates the mean metric based on the averaging method specified.
 
         batch_logits is B X MS X C
         batch_targets is B X S
