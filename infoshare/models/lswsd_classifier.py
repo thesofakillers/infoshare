@@ -28,6 +28,7 @@ class LSWSDClassifier(BaseClassifier):
         self.save_hyperparameters()
         print(self.hparams)
         super().__init__(**kwargs)
+        self.batch_outputs = []
 
     def get_classifier_head(self, n_hidden: int, n_classes: int) -> nn.Module:
         return nn.Sequential(
@@ -70,6 +71,7 @@ class LSWSDClassifier(BaseClassifier):
         batch_logits = processed_batch["logits"]
         batch_targets = processed_batch["targets"]
         batch_lemmas = processed_batch["lemmas"]
+        self.prefix = prefix
 
         self.log_metric(
             batch_logits,
@@ -98,6 +100,7 @@ class LSWSDClassifier(BaseClassifier):
         metric_name: str = "acc",
     ):
         batch_size = len(logits)
+        batch_output = {"metrics": {}, "batch_size": batch_size}
 
         # Calculate & log average micro metric
         metric_avg = self.calculate_average_metric(logits, targets, lemmas, metric_name)
@@ -113,11 +116,27 @@ class LSWSDClassifier(BaseClassifier):
         )
         for i, metric_i in enumerate(metric_per_class):
             class_name = self.hparams.class_map[i]
-            self.log(
-                f"{prefix}{stage}_{metric_name}_{class_name}",
-                metric_i,
-                batch_size=batch_size,
-            )
+            batch_output["metrics"][
+                f"{prefix}{stage}_{metric_name}_{class_name}"
+            ] = metric_i
+        self.batch_outputs.append(batch_output)
+
+    def on_test_epoch_end(self) -> None:
+        stage = "test"
+        total_elems = sum([batch["batch_size"] for batch in self.batch_outputs])
+        for metric in ["acc", "f1"]:
+            for class_name in self.hparams.class_map.values():
+                overall_metric_class = torch.nansum(
+                    [
+                        b["metrics"][f"{stage}_{metric}_{class_name}"]
+                        * (b["batch_size"] / total_elems)
+                        for b in self.batch_outputs
+                    ]
+                )
+                self.log(
+                    f"{self.prefix}{stage}_{metric}_{class_name}",
+                    overall_metric_class,
+                )
 
     @torch.no_grad()
     def calculate_average_metric(
