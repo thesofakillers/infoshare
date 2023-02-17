@@ -17,5 +17,5 @@ module load Anaconda3/2021.05
 source activate bert-infoshare
 
 NEUTR_HPARAMS_FILE=./lisa/arrays/pos/neutr_hparams.txt
-srun python -u test.py --num_workers 3 \
+srun python -u infoshare/run/test.py --num_workers 3 \
                         $(head -$SLURM_ARRAY_TASK_ID $NEUTR_HPARAMS_FILE | tail -1)
