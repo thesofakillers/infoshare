@@ -75,9 +75,9 @@ def train(args: Namespace):
             model_class = models.LSWSDClassifier
         elif args.task == "WSD":
             model_class = models.WSDClassifier
+            args.compute_centroids = False
         # additional args necessary
         args.lemma_to_sense_ids = datamodule.lemma_to_sense_ids
-        args.compute_centroids = False
     else:
         raise Exception(f"Unsupported task: {args.task}")
 
