@@ -16,11 +16,11 @@ module load Anaconda3/2021.05
 
 source activate bert-infoshare
 
-CHECKPOINT=./lisa/arrays/lswsd/checkpoint.ckpt
+CHECKPOINT="./lightning_logs/roberta-base/LSWSD/agg=max_probe=3/version_0/checkpoints/epoch=5-step=324.ckpt"
 CENTROIDS=./lisa/arrays/pos/pos_centroids.pt
 NEUTRALIZERS=./lisa/arrays/pos/neutralizers.txt
 
-srun python -u test.py --num_workers 3 \
+srun python -u infoshare/run/test.py --num_workers 3 \
                        --checkpoint $CHECKPOINT \
                        --centroids_file $CENTROIDS \
                        --neutralizer $(head -$SLURM_ARRAY_TASK_ID $NEUTRALIZERS | tail -1)
