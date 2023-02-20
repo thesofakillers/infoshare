@@ -23,7 +23,9 @@ def get_experiment_name(args: Namespace) -> str:
     return experiment_name
 
 
-def get_xneutr_df(experiment_path: str, suffix_filter=None) -> pd.DataFrame:
+def get_xneutr_df(
+    experiment_path: str, suffix_filter: Optional[str] = None, metric_name: str = "acc"
+) -> pd.DataFrame:
     """Returns a dataframe with the target names as columns and the neutralizer names as index."""
     neutralizers = {}
     if suffix_filter is not None:
@@ -50,6 +52,10 @@ def get_xneutr_df(experiment_path: str, suffix_filter=None) -> pd.DataFrame:
                 # Only interested in evaluation runs
                 continue
 
+            if metric_name not in metric:
+                # Only interested in requested metric
+                continue
+
             # Extract the target name from the metric
             if "/" not in metric:
                 target_tag = "avg"
@@ -70,7 +76,7 @@ def get_xneutr_df(experiment_path: str, suffix_filter=None) -> pd.DataFrame:
     return df
 
 
-def get_baseline_series(experiment_path: str) -> pd.Series:
+def get_baseline_series(experiment_path: str, metric_name: str = "acc") -> pd.Series:
     """Returns a series with the baseline metrics for the given experiment."""
     if "*" in experiment_path:
         # Remove wildstar from string by taking the first substitution
@@ -84,6 +90,9 @@ def get_baseline_series(experiment_path: str) -> pd.Series:
     for metric in ea.Tags()["scalars"]:
         if "test" not in metric:
             # Only interested in evaluation runs
+            continue
+        if metric_name not in metric:
+            # Only interested in requested metric
             continue
 
         # Extract the target name from the metric
@@ -100,7 +109,10 @@ def get_baseline_series(experiment_path: str) -> pd.Series:
 
 
 def get_acc_drop(
-    eval_path: str, keep_cols: Optional[List[str]] = None, suffix_filter=None
+    eval_path: str,
+    keep_cols: Optional[List[str]] = None,
+    suffix_filter=None,
+    metric_name: str = "acc",
 ) -> pd.DataFrame:
     """Returns a dataframe with the relative accuracy drop with cross-neutralizing.
 
