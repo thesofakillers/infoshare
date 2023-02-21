@@ -108,25 +108,9 @@ def get_baseline_series(experiment_path: str, metric_name: str = "acc") -> pd.Se
     return pd.Series(scalars)
 
 
-def get_acc_drop(
-    eval_path: str,
-    keep_cols: Optional[List[str]] = None,
-    suffix_filter=None,
-    metric_name: str = "acc",
-) -> pd.DataFrame:
-    """Returns a dataframe with the relative accuracy drop with cross-neutralizing.
-
-    Args:
-        eval_path (str): the path to the evaluation directory
-        keep_cols (List[str]): the columns to keep in the dataframe
-
-    Returns:
-        a dataframe with the target names as columns and the neutralizer names as index
-    """
-    # Get the baseline and cross-neutralizing results
-    base_series = get_baseline_series(f"{eval_path}/events*")
-    xn_df = get_xneutr_df(f"{eval_path}_*/events*", suffix_filter=suffix_filter)
-
+def compute_perf_change(
+    base_series, xn_df, keep_cols, suffix_filter, change: str = "rel"
+):
     # Filter the columns that don't appear in the baseline
     # we don't do this for cross-task cross neutralisation
     if suffix_filter is not None:
@@ -135,7 +119,12 @@ def get_acc_drop(
         xn_df = xn_df.T[~nulls].T
 
     # Calculate relative accuracy drop
-    acc_drop = (xn_df - base_series) / base_series
+    if change == "rel":
+        acc_drop = (xn_df - base_series) / base_series
+    elif change == "abs":
+        acc_drop = xn_df - base_series
+    else:
+        raise ValueError(f"Unknown change type {change}")
     acc_drop.sort_index(axis=0, inplace=True)
     acc_drop.sort_index(axis=1, inplace=True)
 
@@ -166,6 +155,31 @@ def get_acc_drop(
         acc_drop = (acc_drop.loc[keep_cols])[keep_cols]
 
     return acc_drop
+
+
+def get_acc_drop(
+    eval_path: str,
+    keep_cols: Optional[List[str]] = None,
+    suffix_filter=None,
+    metric_name: str = "acc",
+    change="rel",
+) -> pd.DataFrame:
+    """Returns a dataframe with the performance drop with cross-neutralizing.
+
+    Args:
+        eval_path (str): the path to the evaluation directory
+        keep_cols (List[str]): the columns to keep in the dataframe
+
+    Returns:
+        a dataframe with the target names as columns and the neutralizer names as index
+    """
+    # Get the baseline and cross-neutralizing results
+    base_series = get_baseline_series(f"{eval_path}/events*")
+    xn_df = get_xneutr_df(
+        f"{eval_path}_*/events*", suffix_filter=suffix_filter, metric_name=metric_name
+    )
+
+    return compute_perf_change(base_series, xn_df, keep_cols, suffix_filter, change)
 
 
 def get_experiments_df(
