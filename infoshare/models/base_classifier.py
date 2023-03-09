@@ -66,7 +66,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         super().__init__()
 
         # maps target human-readable labels to their IDs
-        self.label_to_id = {label: i for i, label in enumerate(self.hparams.class_map)}
+        self.label_to_id = {label: i for i, label in enumerate(class_map)}
 
         self.classifier = self.get_classifier_head(n_hidden, n_classes)
 
