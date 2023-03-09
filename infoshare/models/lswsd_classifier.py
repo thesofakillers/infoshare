@@ -121,6 +121,14 @@ class LSWSDClassifier(BaseClassifier):
         self.batch_outputs[metric_name].append(batch_output)
 
     def on_test_epoch_end(self) -> None:
+        """
+        It can happen that a certain class never appears in a batch,
+        causing the metric for that batch to be NaN. Because PL doesn't
+        account for this, a single NaN batch can cause the average metric
+        across the entire epoch for that class to be NaN. We therefore
+        implement this method to override the default PL behaviour and ignore NaNs
+        when computing aggregated metrics.
+        """
         stage = "test"
         total_elems = sum([batch["batch_size"] for batch in self.batch_outputs["acc"]])
         for metric in ["acc", "f1"]:
