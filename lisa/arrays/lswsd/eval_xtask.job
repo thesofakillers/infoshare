@@ -1,13 +1,13 @@
 #!/bin/bash
 
-#SBATCH --partition=gpu_titanrtx_shared_course
+#SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --job-name=LSWSD_Eval_XTask
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=3
+#SBATCH --cpus-per-task=18
 #SBATCH --time=00:10:00
-#SBATCH --mem=32000M
-#SBATCH --array=1-18%2
+#SBATCH --mem-per-gpu=32000M
+#SBATCH --array=1-18%18
 #SBATCH --output=lisa/outputs/eval_logs/lswsd/xtask_%A_%a.out
 
 module purge
@@ -16,9 +16,9 @@ module load Anaconda3/2021.05
 
 source activate bert-infoshare
 
-CHECKPOINT="./lightning_logs/roberta-base/LSWSD/agg=max_probe=3/version_0/checkpoints/epoch=5-step=324.ckpt"
-CENTROIDS=./lisa/arrays/pos/pos_centroids.pt
-NEUTRALIZERS=./lisa/arrays/pos/neutralizers.txt
+CHECKPOINT="./lightning_logs/roberta-base/semcor/LSWSD/agg=mean_probe=12/version_0/checkpoints/epoch=8-step=486.ckpt"
+CENTROIDS=./lisa/arrays/pos-semcor/pos_centroids.pt
+NEUTRALIZERS=./lisa/arrays/pos-semcor/neutralizers.txt
 
 srun python -u infoshare/run/test.py --num_workers 3 \
                        --checkpoint $CHECKPOINT \
