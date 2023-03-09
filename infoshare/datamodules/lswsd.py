@@ -18,7 +18,7 @@ from infoshare.utils import just_underscore, just_zero, list_of_zero
 
 class LSWSDDataModule(BaseDataModule):
     """
-    Lexical sampling of SemCor
+    Lexical sampling of word senses in SemCor
     """
 
     train: Dataset
@@ -39,10 +39,10 @@ class LSWSDDataModule(BaseDataModule):
         batch_size: int = 64,
         num_workers: int = 4,
     ):
-        """Data module for the Lexical Sampling of SemCor.
+        """Data module for SemCor.
 
         Args:
-            task (str): the task to train the probing classifier on (WSD).
+            task (str): the task to train the probing classifier on (LSWSD or POS).
             tokenize_fn (Callable): a func takes sentence and returns list of tokens
             data_dir (str): the data directory to load/store the datasets
             batch_size (int): the batch size used by the dataloaders
@@ -51,13 +51,13 @@ class LSWSDDataModule(BaseDataModule):
         super().__init__()
         self.save_hyperparameters(ignore=["tokenize_fn"])
 
-        valid_tasks = ["LSWSD"]
+        valid_tasks = ["LSWSD", "POS"]
         assert task in valid_tasks, f"Task must be one of {valid_tasks}"
 
         self.tokenize_fn = tokenize_fn
-        self.data_dir = os.path.join(data_dir, "lswsd")
+        self.data_dir = os.path.join(data_dir, "semcor")
         self.raw_dir = os.path.join(self.data_dir, "raw")
-        self.processed_dir = os.path.join(self.data_dir, "processed")
+        self.processed_dir = os.path.join(self.data_dir, task, "processed")
 
         # fmt: off
         self.UD_POS_TAGS = [
@@ -144,13 +144,64 @@ class LSWSDDataModule(BaseDataModule):
     def setup(self, stage: Optional[str] = None) -> None:
         if self.has_setup:
             return
-        self.id_to_cname = set()
-        # processing so that the right columns are available for our classifier
-        self.train = self.process_dset(self.raw_dset_dict["train"], split="train")
-        self.val = self.process_dset(self.raw_dset_dict["val"], split="val")
-        self.test = self.process_dset(self.raw_dset_dict["test"], split="test")
+        # processing so that the correct columns are available for our classifier
+        if self.hparams.task == "LSWSD":
+            self.id_to_cname = set()
+            self.train = self.process_for_lswsd(
+                self.raw_dset_dict["train"], split="train"
+            )
+            self.val = self.process_for_lswsd(self.raw_dset_dict["val"], split="val")
+            self.test = self.process_for_lswsd(self.raw_dset_dict["test"], split="test")
+        elif self.hparams.task == "POS":
+            self.train = self.process_for_pos(
+                self.raw_dset_dict["train"], split="train"
+            )
+            self.val = self.process_for_pos(self.raw_dset_dict["val"], split="val")
+            self.test = self.process_for_pos(self.raw_dset_dict["test"], split="test")
+        else:
+            raise ValueError(f"Unknown task {self.hparams.task}")
 
-    def process_dset(self, dset: Dataset, split: str) -> Dataset:
+    def process_for_pos(self, dset: Dataset, split: str) -> Dataset:
+        processed_path = os.path.join(self.processed_dir, split)
+
+        if os.path.exists(processed_path):
+            proc_dataset = datasets.load_from_disk(processed_path)
+            if split == "train":
+                self._handle_cname_maps_pos()
+            return proc_dataset
+
+        print(f"Processing {split} split...")
+
+        # get rid of unnecessary columns
+        sentences = dset.remove_columns(["lemmas", "senses", "idxs"])
+
+        if split == "train":
+            self._handle_cname_maps_pos()
+
+        sentences = sentences.map(self._convert_to_ids_pos)
+
+        # need to create a new dataset to set our own features (lame)
+        proc_dataset = Dataset.from_dict(
+            sentences.to_dict(),
+            features=Features(
+                {
+                    "id": Value("int64"),
+                    "tokens": Sequence(Value("string")),
+                    "pos": Sequence(
+                        ClassLabel(num_classes=self.num_classes, names=self.id_to_cname)
+                    ),
+                }
+            ),
+        )
+
+        print("Saving to disk")
+        os.makedirs(processed_path, exist_ok=True)
+        proc_dataset.save_to_disk(processed_path)
+
+        print("Done.")
+        return proc_dataset
+
+    def process_for_lswsd(self, dset: Dataset, split: str) -> Dataset:
         """
         Processes the raw dataset so to only consider the lexical senses that
         have been selected. The resulting dataset contains the following columns.
@@ -168,11 +219,12 @@ class LSWSDDataModule(BaseDataModule):
             proc_dataset = datasets.load_from_disk(processed_path)
             if split == "train":
                 self.id_to_cname = proc_dataset.features["senses"].feature.names
-                self._handle_cname_maps()
+                self._handle_cname_maps_lswsd()
             return proc_dataset
 
         print(f"Processing {split} split...")
 
+        # get rid of features not directly linked to the salient idxs (tokens untouched)
         sentences = dset.map(self._reduce_to_salients)
 
         if split == "train":
@@ -181,9 +233,9 @@ class LSWSDDataModule(BaseDataModule):
                     self.id_to_cname.add(sense)
             self.id_to_cname = list(self.id_to_cname)
             self.id_to_cname.insert(0, "unk")
-            self._handle_cname_maps()
+            self._handle_cname_maps_lswsd()
 
-        sentences = sentences.map(self._convert_to_ids)
+        sentences = sentences.map(self._convert_to_ids_lswsd)
 
         # need to create a new dataset to set our own features (lame)
         proc_dataset = Dataset.from_dict(
@@ -211,14 +263,24 @@ class LSWSDDataModule(BaseDataModule):
         print("Done.")
         return proc_dataset
 
-    def _convert_to_ids(self, input_row):
+    def _convert_to_ids_pos(self, input_row):
+        pos_ids = [self.cname_to_id[self.penn_to_ud[pos]] for pos in input_row["pos"]]
+        input_row["pos"] = pos_ids
+        return input_row
+
+    def _convert_to_ids_lswsd(self, input_row):
         pos_ids = [self.pos_cname2id[self.penn_to_ud[pos]] for pos in input_row["pos"]]
         sense_ids = [self.cname_to_id[sense] for sense in input_row["senses"]]
         input_row["pos"] = pos_ids
         input_row["senses"] = sense_ids
         return input_row
 
-    def _handle_cname_maps(self):
+    def _handle_cname_maps_pos(self):
+        self.id_to_cname = self.pos_id2cname
+        self.cname_to_id = {cname: idx for idx, cname in enumerate(self.id_to_cname)}
+        self.num_classes = len(self.id_to_cname)
+
+    def _handle_cname_maps_lswsd(self):
         """Add 'unk' to the beginning of the list of sense names and computes inverse"""
         self.cname_to_id = defaultdict(
             just_zero, {sense: i for i, sense in enumerate(self.id_to_cname)}
@@ -254,16 +316,30 @@ class LSWSDDataModule(BaseDataModule):
         return np.where(agg_input.isin(self.lemmas))[0]
 
     def get_collate_fn(self):
-        return self.wsd_collate_fn
+        """
+        Parses an incoming batch of data, tokenizing the sentences in the process
+        """
+        if self.hparams.task == "LSWSD":
+            return self.wsd_collate_fn
+        elif self.hparams.task == "POS":
+            return self.pos_collate_fn
+        else:
+            raise ValueError(f"Unknown task {self.hparams.task}")
+
+    def pos_collate_fn(
+        self, batch: List[Dict[str, Any]]
+    ) -> Tuple[BatchEncoding, List[LongTensor]]:
+        """Custom collate function for the POS task."""
+        encodings = self.tokenize_fn([x["tokens"] for x in batch])
+        targets = [LongTensor(x["pos"]) for x in batch]
+        return encodings, targets
 
     def wsd_collate_fn(
         self, batch: List[Dict[str, Any]]
     ) -> Tuple[
         BatchEncoding, List[LongTensor], List[LongTensor], List[LongTensor], List[str]
     ]:
-        """
-        Parses an incoming batch of data, tokenizing the sentences in the process
-        """
+        """Custom collate function for the LSWSD task."""
         encodings = self.tokenize_fn([x["tokens"] for x in batch])
         target_senses = [LongTensor(x["senses"]) for x in batch]
         target_idxs = [LongTensor(x["idxs"]) for x in batch]
