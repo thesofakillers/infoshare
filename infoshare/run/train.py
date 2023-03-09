@@ -178,7 +178,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max_epochs",
         type=int,
-        default=20,
+        default=100,
         help="The max amount of epochs to train the classifier.",
     )
 
