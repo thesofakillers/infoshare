@@ -67,24 +67,28 @@ def test(args: Namespace):
 
     # Load the appropriate datamodule
     if hparams.task in {"POS", "DEP"}:
-        if args.task == "POS" and args.pos_dataset == "semcor":
+        if hparams.task == "POS" and hparams.pos_dataset == "semcor":
             datamodule = SemCorDataModule(
-                args.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
-            )
-            log_save_dir = os.path.join(
-                args.log_dir, args.encoder_name, "semcor", args.task
-            )
-        else:
-            datamodule = UDDataModule(
-                args.task,
-                args.treebank_name,
+                hparams.task,
                 tokenize_fn,
                 args.data_dir,
                 args.batch_size,
                 args.num_workers,
             )
             log_save_dir = os.path.join(
-                args.log_dir, args.encoder_name, args.treebank_name, args.task
+                args.log_dir, hparams.encoder_name, "semcor", hparams.task
+            )
+        else:
+            datamodule = UDDataModule(
+                hparams.task,
+                hparams.treebank_name,
+                tokenize_fn,
+                args.data_dir,
+                args.batch_size,
+                args.num_workers,
+            )
+            log_save_dir = os.path.join(
+                args.log_dir, hparams.encoder_name, hparams.treebank_name, hparams.task
             )
     elif hparams.task in {"WSD"}:
         datamodule = WSDDataModule(
@@ -96,7 +100,7 @@ def test(args: Namespace):
             hparams.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
         )
         log_save_dir = os.path.join(
-            args.log_dir, args.encoder_name, "semcor", args.task
+            args.log_dir, hparams.encoder_name, "semcor", hparams.task
         )
     datamodule.prepare_data()
     datamodule.setup()
