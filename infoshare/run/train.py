@@ -14,7 +14,7 @@ from infoshare.datamodules import (
     UDDataModule,
     WSDDataModule,
     BaseDataModule,
-    LSWSDDataModule,
+    SemCorDataModule,
 )
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -55,7 +55,7 @@ def train(args: Namespace):
         log_save_dir = os.path.join(args.log_dir, args.encoder_name, args.task)
     elif args.task in {"LSWSD"}:
         metric = "f1"
-        datamodule = LSWSDDataModule(
+        datamodule = SemCorDataModule(
             args.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
         )
         log_save_dir = os.path.join(args.log_dir, args.encoder_name, args.task)

@@ -9,7 +9,7 @@ import torch
 
 from infoshare.utils import get_experiment_name
 import infoshare.models as models
-from infoshare.datamodules import UDDataModule, WSDDataModule, LSWSDDataModule
+from infoshare.datamodules import UDDataModule, WSDDataModule, SemCorDataModule
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 logging.set_verbosity_error()
@@ -86,7 +86,7 @@ def test(args: Namespace):
         )
         log_save_dir = os.path.join(args.log_dir, hparams.encoder_name, hparams.task)
     elif hparams.task in {"LSWSD"}:
-        datamodule = LSWSDDataModule(
+        datamodule = SemCorDataModule(
             hparams.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
         )
         log_save_dir = os.path.join(args.log_dir, hparams.encoder_name, hparams.task)

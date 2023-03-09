@@ -16,7 +16,7 @@ from infoshare.datamodules.base import BaseDataModule
 from infoshare.utils import just_underscore, just_zero, list_of_zero
 
 
-class LSWSDDataModule(BaseDataModule):
+class SemCorDataModule(BaseDataModule):
     """
     Lexical sampling of word senses in SemCor
     """

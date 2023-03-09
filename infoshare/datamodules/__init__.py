@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 from infoshare.datamodules.base import BaseDataModule
 from infoshare.datamodules.ud import UDDataModule
 from infoshare.datamodules.wsd import WSDDataModule
-from infoshare.datamodules.lswsd import LSWSDDataModule
+from infoshare.datamodules.semcor import SemCorDataModule
 
 
 if __name__ == "__main__":
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     wsd.setup()
 
     print("Setting up LSWSD")
-    lswsd = LSWSDDataModule(
+    lswsd = SemCorDataModule(
         "LSWSD",
         tokenize_fn,
         args.data_dir,
