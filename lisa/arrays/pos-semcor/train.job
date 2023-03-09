@@ -1,21 +1,22 @@
 #!/bin/bash
 
-#SBATCH --partition=gpu_shared_course
+#SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --job-name=POS_Train
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=3
+#SBATCH --cpus-per-task=18
 #SBATCH --time=00:30:00
-#SBATCH --mem=32000M
-#SBATCH --array=1-15%2
+#SBATCH --mem-per-gpu=32000M
+#SBATCH --array=1-15%15
 #SBATCH --output=lisa/outputs/train_logs/pos-semcor/%A_%a.out
 
 module purge
-module load 2021
-module load Anaconda3/2021.05
+module load 2022
+module load Anaconda3/2022.05
 
 source activate bert-infoshare
 
 HPARAMS_FILE=./lisa/arrays/hparams.txt
-srun python -u train.py --num_workers 3 --task POS --pos_dataset semcor \
+srun python -u infoshare/run/train.py --num_workers 3 --task POS \
+                        --pos_dataset semcor \
                         $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
