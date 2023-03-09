@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 from typing import Dict, Tuple
 
 from torch import nn, Tensor
@@ -7,9 +8,21 @@ from infoshare.models.base_classifier import BaseClassifier
 
 
 class POSClassifier(BaseClassifier):
-    def __init__(**kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.save_hyperparameters()
+
+    @staticmethod
+    def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
+        parser = parent_parser.add_argument_group("POS Classifier")
+        parser.add_argument(
+            "--pos_dataset",
+            type=str,
+            default="ud",
+            choices=["ud", "semcor"],
+            help="The dataset to use.",
+        )
+        return parent_parser
 
     def get_classifier_head(self, n_hidden: int, n_classes: int) -> nn.Module:
         return nn.Sequential(

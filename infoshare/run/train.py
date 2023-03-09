@@ -33,20 +33,25 @@ def train(args: Namespace):
     # Load the appropriate datamodule
     if args.task in {"POS", "DEP"}:
         metric = "acc"
-        datamodule = UDDataModule(
-            args.task,
-            args.treebank_name,
-            tokenize_fn,
-            args.data_dir,
-            args.batch_size,
-            args.num_workers,
-        )
-        log_save_dir = os.path.join(
-            args.log_dir,
-            args.encoder_name,
-            args.treebank_name,
-            args.task,
-        )
+        if args.task == "POS" and args.pos_dataset == "semcor":
+            datamodule = SemCorDataModule(
+                args.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
+            )
+            log_save_dir = os.path.join(
+                args.log_dir, args.encoder_name, "semcor", args.task
+            )
+        else:
+            datamodule = UDDataModule(
+                args.task,
+                args.treebank_name,
+                tokenize_fn,
+                args.data_dir,
+                args.batch_size,
+                args.num_workers,
+            )
+            log_save_dir = os.path.join(
+                args.log_dir, args.encoder_name, args.treebank_name, args.task
+            )
     elif args.task in {"WSD"}:
         metric = "f1"
         datamodule = WSDDataModule(
@@ -58,7 +63,9 @@ def train(args: Namespace):
         datamodule = SemCorDataModule(
             args.task, tokenize_fn, args.data_dir, args.batch_size, args.num_workers
         )
-        log_save_dir = os.path.join(args.log_dir, args.encoder_name, args.task)
+        log_save_dir = os.path.join(
+            args.log_dir, args.encoder_name, "semcor", args.task
+        )
     else:
         raise ValueError(f"Unknown task {args.task}")
 
@@ -188,9 +195,10 @@ if __name__ == "__main__":
     # Encoder arguments
     models.BERTEncoderForWordClassification.add_model_specific_args(parser)
 
-    # Classifier arguments. POS, WSD and LSWSD covered by Base. DEP has additional args.
+    # Classifier arguments. WSD and LSWSD covered by Base. POS and DEP have additional args.
     models.BaseClassifier.add_model_specific_args(parser)
     models.DEPClassifier.add_model_specific_args(parser)
+    models.POSClassifier.add_model_specific_args(parser)
 
     # Dataset arguments. UD has additional args.
     BaseDataModule.add_model_specific_args(parser)
