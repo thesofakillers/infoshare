@@ -29,6 +29,14 @@ You can do this automatically with the following bash script:
 bash lisa/arrays/get_checkpoints.sh <task>
 ```
 
+Note that you may need to provide an additional `<dir>` argument to specify
+which directory to search the checkpoints in, so to disambiguate tasks that can
+be run on multiple datasets, such as POS. For example:
+
+```bash
+bash lisa/arrays/get_checkpoints.sh POS lightning_logs/roberta-base/semcor
+```
+
 Then, you can schedule an array of jobs with the following command:
 ```bash
 sbatch lisa/arrays/<task>/eval_base.job

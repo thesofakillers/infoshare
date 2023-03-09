@@ -1,9 +1,15 @@
 #!/bin/bash
 
-if [ $# -ne 1 ]; then
+if [ $# -lt 1 ]; then
     echo "Please specify the task to collect the checkpoints for!"
     echo "Example: bash get_checkpoints.sh POS"
     exit 1
+fi
+
+if [ $# -lt 2 ]; then
+  directory="." 
+else
+  directory=$2
 fi
 
 (
@@ -15,7 +21,7 @@ fi
       cd ..
   fi
 
-  CHECKPOINTS=$(find . -type f -name "*.ckpt" | grep "$1" | sort -V)
+  CHECKPOINTS=$(find $2 -type f -name "*.ckpt" | grep "$1" | sort -V)
 
   if [[ ${#CHECKPOINTS} -eq 0 ]]; then
       echo "No checkpoints were found for task $1!"
