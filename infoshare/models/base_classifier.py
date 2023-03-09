@@ -29,7 +29,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         # https://stackoverflow.com/a/15008806/9889508
         parser.add_argument("--compute_centroids", action="store_true")
         parser.add_argument(
-            "--no-centroids", dest="compute_centroids", action="store_false"
+            "--no_centroids", dest="compute_centroids", action="store_false"
         )
         parser.set_defaults(compute_centroids=True)
         return parent_parser

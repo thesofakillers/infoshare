@@ -10,7 +10,7 @@ from infoshare.models.base_classifier import BaseClassifier
 
 
 class DEPClassifier(BaseClassifier):
-    def __init__(**kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.save_hyperparameters()
 
