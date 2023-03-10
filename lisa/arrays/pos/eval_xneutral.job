@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#SBATCH --partition=gpu_shared_course
+#SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --job-name=POS_Eval_XNeutral
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=3
+#SBATCH --cpus-per-task=18
 #SBATCH --time=00:10:00
 #SBATCH --mem=32000M
 #SBATCH --array=1-270%2
