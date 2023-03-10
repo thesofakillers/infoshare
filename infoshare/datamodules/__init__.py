@@ -49,6 +49,17 @@ if __name__ == "__main__":
     lswsd.prepare_data()
     lswsd.setup()
 
+    print("Setting up POS-SemCor")
+    pos_semcor = SemCorDataModule(
+        "POS",
+        tokenize_fn,
+        args.data_dir,
+        args.batch_size,
+        args.num_workers,
+    )
+    pos_semcor.prepare_data()
+    pos_semcor.setup()
+
     print("Setting up UD pos")
     ud_pos = UDDataModule(
         "POS",
