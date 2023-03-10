@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=18
 #SBATCH --time=00:10:00
 #SBATCH --mem-per-gpu=32000M
-#SBATCH --array=1-18%18
+#SBATCH --array=1-15%15
 #SBATCH --output=lisa/outputs/eval_logs/lswsd/xtask_%A_%a.out
 
 module purge
@@ -16,7 +16,7 @@ module load Anaconda3/2021.05
 
 source activate bert-infoshare
 
-CHECKPOINT="./lightning_logs/roberta-base/semcor/LSWSD/agg=mean_probe=12/version_0/checkpoints/epoch=8-step=486.ckpt"
+CHECKPOINT="./lightning_logs/roberta-base/semcor/LSWSD/agg=mean_probe=12/version_0/checkpoints/epoch=6-step=378.ckpt"
 CENTROIDS=./lisa/arrays/pos-semcor/pos_centroids.pt
 NEUTRALIZERS=./lisa/arrays/pos-semcor/neutralizers.txt
 

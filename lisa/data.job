@@ -2,12 +2,12 @@
 
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
-#SBATCH --job-name=POS
+#SBATCH --job-name=DATA
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=3
+#SBATCH --cpus-per-task=18
 #SBATCH --time=00:10:00
 #SBATCH --mem-per-gpu=32000M
-#SBATCH --output=lisa/outputs/pos_train_%A.out
+#SBATCH --output=lisa/outputs/data_%A.out
 
 module purge
 module load 2022
@@ -15,4 +15,4 @@ module load Anaconda3/2022.05
 
 source activate bert-infoshare
 
-srun python -u infoshare/run/train.py --task POS --num_workers 18
+srun python infoshare/datamodules/__init__.py
