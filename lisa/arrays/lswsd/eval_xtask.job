@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=18
 #SBATCH --time=00:10:00
 #SBATCH --mem-per-gpu=32000M
-#SBATCH --array=1-15%15
+#SBATCH --array=1-18%18
 #SBATCH --output=lisa/outputs/eval_logs/lswsd/xtask_%A_%a.out
 
 module purge
