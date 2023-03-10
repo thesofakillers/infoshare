@@ -28,7 +28,7 @@ class UDDataModule(BaseDataModule):
     ud_val: Dataset
     ud_test: Dataset
     ud_debug: Dataset
-    cname_to_id = Optional[Dict[str, int]]
+    cname_to_id = Dict[str, int]
     id_to_cname: List[str]
     num_classes: int
 
@@ -112,6 +112,9 @@ class UDDataModule(BaseDataModule):
                 self.num_classes = self.ud_train.info.features[
                     "upos"
                 ].feature.num_classes
+                self.cname_to_id = {
+                    cname: i for i, cname in enumerate(self.id_to_cname)
+                }
             elif self.hparams.task == "DEP":
                 # Aggregate all classes from the train dataset
                 # We include "_" to comply with the number of classes in the dataset spec
