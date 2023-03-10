@@ -146,7 +146,8 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
 
         # Pad & mask target values to use with CE
         targets_padded = pad_sequence(targets, batch_first=True, padding_value=-1)
-        targets_padded[targets_padded == self.hparams.ignore_id] = -1
+        if "ignore_id" in self.hparams:
+            targets_padded[targets_padded == self.hparams.ignore_id] = -1
 
         # Calculate & log CrossEntropy loss
         # NOTE: CE expects input shape (N, C, S) while logits' shape is (N, S, C)
@@ -308,7 +309,9 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
                     target=targets[i],
                     average=average,
                     num_classes=logits.shape[-1],
-                    ignore_index=self.hparams.ignore_id,
+                    ignore_index=self.hparams.ignore_id
+                    if "ignore_id" in self.hparams
+                    else None,
                 )
                 for i in range(len(targets))
             ]

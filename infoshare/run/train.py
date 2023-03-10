@@ -103,9 +103,7 @@ def train(args: Namespace):
             **vars(args),
         }
 
-        if args.task == "POS":
-            model_args["ignore_id"] = datamodule.cname_to_id["_"]
-        elif args.task == "DEP":
+        if args.task == "DEP":
             model_args["ignore_id"] = datamodule.cname_to_id["root"]
         elif args.task in {"WSD", "LSWSD"}:
             model_args["ignore_id"] = datamodule.cname_to_id["unk"]
