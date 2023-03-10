@@ -17,5 +17,5 @@ module load Anaconda3/2022.05
 source activate bert-infoshare
 
 HPARAMS_FILE=./lisa/arrays/hparams.txt
-srun python -u infoshare/run/train.py --num_workers 3 --task POS \
+srun python -u infoshare/run/train.py --num_workers 18 --task POS \
                         $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)

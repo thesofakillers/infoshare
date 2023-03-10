@@ -11,11 +11,11 @@
 #SBATCH --output=lisa/outputs/eval_logs/pos/xneutral_%A_%a.out
 
 module purge
-module load 2021
-module load Anaconda3/2021.05
+module load 2022
+module load Anaconda3/2022.05
 
 source activate bert-infoshare
 
 NEUTR_HPARAMS_FILE=./lisa/arrays/pos/neutr_hparams.txt
-srun python -u infoshare/run/test.py --num_workers 3 \
+srun python -u infoshare/run/test.py --num_workers 18 \
                         $(head -$SLURM_ARRAY_TASK_ID $NEUTR_HPARAMS_FILE | tail -1)

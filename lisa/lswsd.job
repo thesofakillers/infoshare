@@ -1,12 +1,12 @@
 #!/bin/bash
 
-#SBATCH --partition=gpu_titanrtx_shared_course
+#SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --job-name=LSWSD
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
 #SBATCH --time=00:20:00
-#SBATCH --mem=32000M
+#SBATCH --mem-per-gpu=32000M
 #SBATCH --output=lisa/outputs/lswsd_train_%A.out
 
 module purge
