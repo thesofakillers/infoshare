@@ -1,22 +1,24 @@
 #!/bin/bash
 
-#SBATCH --partition=gpu_shared_course
+#SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --job-name=POS_Train
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=3
+#SBATCH --cpus-per-task=18
 #SBATCH --time=00:30:00
-#SBATCH --mem=32000M
-#SBATCH --array=1-45%2
+#SBATCH --mem-per-gpu=32000M
+#SBATCH --array=1-45%45
 #SBATCH --output=lisa/outputs/train_logs/pos/xlm_%A_%a.out
 
 module purge
-module load 2021
-module load Anaconda3/2021.05
+module load 2022
+module load Anaconda3/2022.05
 
 source activate bert-infoshare
 
+# select one of the following and adjust #SBATCH --array variable
 HPARAMS_FILE=./lisa/arrays/xlm_hparams.txt
-srun python -u train.py --num_workers 3 --task POS \
+# HPARAMS_FILE=./lisa/arrays/xlm_selected_hparams.txt
+srun python -u infoshare/run/train.py --num_workers 18 --task POS \
                         --encoder_name xlm-roberta-base \
                         $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
