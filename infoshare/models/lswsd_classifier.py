@@ -25,8 +25,8 @@ class LSWSDClassifier(BaseClassifier):
         lemma_to_sense_ids: Dict[str, List[int]],
         **kwargs,
     ):
-        super().__init__(**kwargs)
         self.save_hyperparameters()
+        super().__init__(**kwargs)
         self.batch_outputs = {"acc": [], "f1": []}
 
     def get_classifier_head(self, n_hidden: int, n_classes: int) -> nn.Module:

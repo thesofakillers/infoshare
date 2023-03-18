@@ -9,8 +9,8 @@ from infoshare.models.base_classifier import BaseClassifier
 
 class POSClassifier(BaseClassifier):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
         self.save_hyperparameters()
+        super().__init__(**kwargs)
 
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
