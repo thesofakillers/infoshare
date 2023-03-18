@@ -11,8 +11,8 @@
 #SBATCH --output=lisa/outputs/eval_logs/pos/xtask_%A_%a.out
 
 module purge
-module load 2021
-module load Anaconda3/2021.05
+module load 2022
+module load Anaconda3/2022.05
 
 source activate bert-infoshare
 
