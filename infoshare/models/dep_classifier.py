@@ -20,7 +20,7 @@ class DEPClassifier(BaseClassifier):
         parser.add_argument(
             "--concat_mode",
             type=str,
-            default="ABS",
+            default="ONLY",
             choices=["ABS", "MEAN", "ONLY"],
             help="How to concatenated child and parent.",
         )

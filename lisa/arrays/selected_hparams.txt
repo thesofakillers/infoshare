@@ -1,0 +1,2 @@
+--aggregation max --probe_layer 3
+--aggregation mean --probe_layer 3
