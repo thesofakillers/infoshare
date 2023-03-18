@@ -148,6 +148,7 @@ lightning_logs/
 
 # checkpoint files
 *.ckpt
+*.pt
 
 # Lisa array generated files
 lisa/arrays/*/*checkpoints.txt
