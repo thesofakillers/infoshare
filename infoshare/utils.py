@@ -113,7 +113,7 @@ def compute_perf_change(
 ):
     # Filter the columns that don't appear in the baseline
     # we don't do this for cross-task cross neutralisation
-    if suffix_filter is not None:
+    if suffix_filter is None:
         nulls = base_series.isnull()
         base_series = base_series[~nulls]
         xn_df = xn_df.T[~nulls].T
