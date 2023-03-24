@@ -41,6 +41,7 @@ def get_xneutr_df(
                 continue
 
         neutr_tag = neutr_tag.upper()
+        
 
         # Get the data for the run from Tensorboard
         ea = EventAccumulator(run_path)
@@ -112,11 +113,9 @@ def compute_perf_change(
     base_series, xn_df, keep_cols, suffix_filter, change: str = "rel"
 ):
     # Filter the columns that don't appear in the baseline
-    # we don't do this for cross-task cross neutralisation
-    if suffix_filter is None:
-        nulls = base_series.isnull()
-        base_series = base_series[~nulls]
-        xn_df = xn_df.T[~nulls].T
+    nulls = base_series.isnull()
+    base_series = base_series[~nulls]
+    xn_df = xn_df.T[~nulls].T
 
     # Calculate relative accuracy drop
     if change == "rel":
