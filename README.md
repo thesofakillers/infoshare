@@ -48,15 +48,7 @@ sh gen_pip_reqs.sh
 │   │   └── train.py                 # run training
 │   ├── __init__.py
 │   └── utils.py                     # general utils
-├── notebooks
-│   ├── cross_neutralizing.ipynb     # notebook for cross-neutralization plots
-│   ├── cross_task_figs.ipynb        # notebook for cross-task XN figures
-│   ├── infer_demo.ipynb             # notebook for inference demo
-│   ├── lswsd_lemmas.ipynb           # notebook for finding LSWSD candidate lemmas
-│   ├── report_figures.ipynb         # notebook for generating figures in the report
-│   ├── semcor_sense_stats.ipynb     # notebook for sense stats
-│   ├── semcor_word_stats.ipynb      # notebook for lemma stats
-│   └── ud_stats.ipynb               # notebook for UD stats
+├── notebooks/                       # see notebooks/README.md
 ├── reports/                         # LaTeX and more
 ├── README.md                        # you are here
 ├── lswsd_lemmas.txt                 # lemmas used for LSWSD
