@@ -15,3 +15,4 @@ the following table for what each notebook contains:
 | `semcor_sense_stats.ipynb`  | Brief analysis of sense statistics in the SemCor dataset                                                                                                                                |
 | `semcor_word_stats.ipynb`   | Exploring the SemCor dataset.                                                                                                                                                           |
 | `ud_stats.ipynb`            | Exploring the Universal Dependencies dataset.                                                                                                                                           |
+| `golden_centroids.ipynb`    | Sanity check: how similar are the predicted centroids to the golden centroids?                                                                                                          |
