@@ -48,6 +48,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         lr: float = 1e-3,
         ignore_id: Optional[int] = None,
         compute_centroids: bool = True,
+        golden_centroids: bool = False,
         **kwargs,
     ):
         """Abstract classifier class for probing tasks.
@@ -62,6 +63,8 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
             lr (float): the learning rate for the classifier
             ignore_id (int): the id to ignore in the target vector
             compute_centroids (bool): whether to compute class centroids. Default True.
+            golden_centroids (bool): whether the centroids should be computed on golden
+                labels of groups or on the predicted labels. Default False.
         """
         super().__init__()
 
@@ -166,14 +169,25 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         return loss
 
     def postprocess_val_batch(
-        self, batch_embs: Tensor, batch_logits: Tensor, targets: Tensor
+        self, batch_embs: Tensor, batch_logits: Tensor, batch_targets: Tensor
     ):
-        """Postprocess the validation batch in order to calculate the class centroids."""
-        for embs, logits, target in zip(batch_embs, batch_logits, targets):
-            preds = logits[: len(target), :].argmax(dim=1).tolist()
+        """
+        Postprocess the validation batch in order to calculate the class centroids.
+
+        Args:
+            batch_embs: NxSxE tensor of embeddings, N is batch_size
+            batch_logits: NxSxC the batch of logits
+            batch_targets: NxS the batch of targets
+        """
+        #   SxE,   SxC,      S
+        for embs, logits, targets in zip(batch_embs, batch_logits, batch_targets):
+            if "golden_centroids" in self.hparams and self.hparams.golden_centroids:
+                keys = targets
+            else:
+                keys = logits[: len(targets), :].argmax(dim=1).tolist()
             # for each word in sentence
-            for emb, pred in zip(embs, preds):
-                self.class_centroids[pred] += [emb]
+            for emb, key in zip(embs, keys):
+                self.class_centroids[key] += [emb]
 
     ##############
     # Evaluation #
