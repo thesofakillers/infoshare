@@ -186,7 +186,7 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
         #   SxE,   SxC,      S
         for embs, logits, targets in zip(batch_embs, batch_logits, batch_targets):
             if "golden_centroids" in self.hparams and self.hparams.golden_centroids:
-                keys = targets
+                keys = targets.detach().cpu().tolist()
             else:
                 keys = logits[: len(targets), :].argmax(dim=1).tolist()
             # for each word in sentence
