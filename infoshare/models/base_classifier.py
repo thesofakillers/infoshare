@@ -26,12 +26,16 @@ class BaseClassifier(LightningModule, metaclass=ABCMeta):
             default=1e-3,
             help="The initial learning rate for the probing classifier.",
         )
+
         # https://stackoverflow.com/a/15008806/9889508
         parser.add_argument("--compute_centroids", action="store_true")
         parser.add_argument(
             "--no_centroids", dest="compute_centroids", action="store_false"
         )
         parser.set_defaults(compute_centroids=True)
+
+        parser.add_argument("--golden_centroids", action="store_true")
+        parser.set_defaults(golden_centroids=False)
         return parent_parser
 
     # Declare variables that will be initialized later
