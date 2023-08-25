@@ -86,6 +86,7 @@ def test(args: Namespace):
                 args.data_dir,
                 args.batch_size,
                 args.num_workers,
+                args.control_task,
             )
             log_save_dir = os.path.join(
                 args.log_dir, hparams.encoder_name, hparams.treebank_name, hparams.task
@@ -201,6 +202,12 @@ if __name__ == "__main__":
         type=str,
         default=None,
         help="Custom centroids file to use for neutralisation. (Optional)",
+    )
+    parser.add_argument(
+        "--control_task",
+        type=bool,
+        default=False,
+        help="Whether to use control task for POS.",
     )
     args = parser.parse_args()
 

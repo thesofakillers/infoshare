@@ -48,6 +48,7 @@ def train(args: Namespace):
                 args.data_dir,
                 args.batch_size,
                 args.num_workers,
+                args.control_task,
             )
             log_save_dir = os.path.join(
                 args.log_dir, args.encoder_name, args.treebank_name, args.task
