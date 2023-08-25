@@ -127,7 +127,6 @@ class UDDataModule(BaseDataModule):
                 ].feature.num_classes
                 self.cname_to_id = {k: i for i, k in enumerate(self.id_to_cname)}
                 if self.hparams.control_task:
-                    print("ehhl")
                     random.seed(99)
                     self.ud_train = self.ud_train.map(self._recompute_labels)
                     self.ud_val = self.ud_val.map(self._recompute_labels)
