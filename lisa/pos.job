@@ -17,4 +17,6 @@ source activate bert-infoshare
 
 srun python -u infoshare/run/train.py --task POS --num_workers 18 \
   --aggregation max \
-  --probe_layer 3
+  --probe_layer 3 \
+  --control_task false
+
