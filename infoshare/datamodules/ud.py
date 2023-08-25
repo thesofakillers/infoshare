@@ -22,6 +22,12 @@ class UDDataModule(BaseDataModule):
             default="en_gum",
             help="The name of the treebank to use as the dataset.",
         )
+        parser.add_argument(
+            "--control_task",
+            type=bool,
+            default=False,
+            help="Whether to process the labels for the selectivity control task.",
+        )
         return parent_parser
 
     # Declare variables that will be initialized later
