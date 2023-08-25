@@ -1,6 +1,7 @@
 import os
 from argparse import ArgumentParser
 from typing import Any, Callable, Dict, List, Tuple, Optional
+import random
 
 from datasets import load_dataset, load_from_disk
 from torch import LongTensor
@@ -40,6 +41,7 @@ class UDDataModule(BaseDataModule):
         data_dir: str = "./data",
         batch_size: int = 64,
         num_workers: int = 4,
+        control_task: bool = False,
     ):
         """Data module for the Universal Dependencies framework.
 
@@ -50,6 +52,8 @@ class UDDataModule(BaseDataModule):
             data_dir: (str): the data directory to load/store the datasets
             batch_size (int): the batch size used by the dataloaders
             num_workers (int): the number of subprocesses used by the dataloaders
+            control_task (bool): Whether to process the labels for the selectivity
+                control task.
         """
         super().__init__()
         self.save_hyperparameters(ignore=["tokenize_fn"])
@@ -59,6 +63,9 @@ class UDDataModule(BaseDataModule):
 
         self.tokenize_fn = tokenize_fn
         self.dataset_dir = os.path.join(data_dir, treebank_name)
+
+        if self.hparams.control_task:
+            self.token_to_control_id = {}
 
     def prepare_data(self):
         if os.path.exists(self.dataset_dir):
@@ -113,6 +120,11 @@ class UDDataModule(BaseDataModule):
                     "upos"
                 ].feature.num_classes
                 self.cname_to_id = {k: i for i, k in enumerate(self.id_to_cname)}
+                if self.hparams.control_task:
+                    print("ehhl")
+                    random.seed(99)
+                    self.ud_train = self.ud_train.map(self._recompute_labels)
+                    self.ud_val = self.ud_val.map(self._recompute_labels)
             elif self.hparams.task == "DEP":
                 # Aggregate all classes from the train dataset
                 # We include "_" to comply with the number of classes in the dataset spec
@@ -125,9 +137,36 @@ class UDDataModule(BaseDataModule):
 
         if stage == "test" or stage is None:
             self.ud_test = dataset["test"]
+            if self.hparams.control_task:
+                # need training to determine the labels (if not already computed)
+                self.ud_train = dataset["train"]
+                self.num_classes = self.ud_train.info.features[
+                    "upos"
+                ].feature.num_classes
+                random.seed(99)
+                self.ud_train = self.ud_train.map(self._recompute_labels)
+                self.ud_test = self.ud_test.map(self._recompute_labels)
 
         if stage == "debug" or stage is None:
             self.ud_debug = dataset["validation"].select(list(range(50)))
+
+    def _recompute_labels(self, sample: Dict) -> Dict:
+        """
+        Recomputes the labels for the samples in the dataset based on the control task
+        from Hewitt and Liang (2019).
+        https://arxiv.org/abs/1909.03368
+
+        We use a hardcoded seed of 99 for reproducibility.
+        """
+        sample_labels = []
+        for token in sample["tokens"]:
+            if token not in self.token_to_control_id:
+                self.token_to_control_id[token] = random.randint(
+                    0, self.num_classes - 1
+                )
+            sample_labels.append(self.token_to_control_id[token])
+        sample["upos"] = sample_labels
+        return sample
 
     def get_collate_fn(self) -> Callable:
         """Returns a collate function for the dataloader based on the task."""
