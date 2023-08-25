@@ -190,6 +190,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--seed", type=int, default=420, help="The seed to use for the RNG."
     )
+    parser.add_argument(
+        "--max_steps",
+        type=int,
+        default=-1,
+        help="Stop training after this number of global steps.",
+    )
 
     # Encoder arguments
     models.BERTEncoderForWordClassification.add_model_specific_args(parser)
