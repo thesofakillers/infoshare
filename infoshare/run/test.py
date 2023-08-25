@@ -148,18 +148,21 @@ if __name__ == "__main__":
         "--enable_progress_bar",
         action="store_true",
         help="Whether to enable the progress bar (NOT recommended when logging to file).",
+        required=False,
     )
 
     parser.add_argument(
         "--neutralizer",
         type=str,
         help="The target class to (cross-)neutralize all embeddings with.",
+        required=False,
     )
 
     parser.add_argument(
         "--no_gpu",
         action="store_true",
         help="Whether to NOT use a GPU accelerator for training.",
+        required=False,
     )
 
     parser.add_argument(
