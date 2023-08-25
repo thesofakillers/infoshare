@@ -208,9 +208,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--control_task",
-        type=bool,
         default=False,
-        help="Whether to use control task for POS.",
+        action="store_true",
+        help="Flag to enable selectivity control task.",
     )
     args = parser.parse_args()
 

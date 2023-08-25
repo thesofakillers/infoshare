@@ -24,9 +24,9 @@ class UDDataModule(BaseDataModule):
         )
         parser.add_argument(
             "--control_task",
-            type=bool,
             default=False,
-            help="Whether to process the labels for the selectivity control task.",
+            action="store_true",
+            help="Flag to enable selectivity control task.",
         )
         return parent_parser
 
