@@ -19,6 +19,4 @@ checkpoint_path="lightning_logs/roberta-base/en_gum/POS/agg=max_probe=3/version_
 
 srun python -u infoshare/run/test.py \
   --num_workers 18 \
-  --checkpoint $checkpoint_path \
-  --control_task false
-
+  --checkpoint $checkpoint_path
