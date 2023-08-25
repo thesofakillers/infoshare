@@ -1,0 +1,24 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
+#SBATCH --job-name=POS_Eval
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=18
+#SBATCH --time=00:30:00
+#SBATCH --mem-per-gpu=32000M
+#SBATCH --output=lisa/outputs/pos_eval_%A.out
+
+module purge
+module load 2022
+module load Anaconda3/2022.05
+
+source activate bert-infoshare
+
+checkpoint_path="lightning_logs/roberta-base/en_gum/POS/agg=max_probe=3/version_0/checkpoints/epoch=6-step=462.ckpt"
+
+srun python -u infoshare/run/test.py \
+  --num_workers 18 \
+  --checkpoint $checkpoint_path \
+  --control_task false
+
