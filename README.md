@@ -1,5 +1,13 @@
 # Probing LLMs for Joint Encoding of Linguistic Categories
 
+[![Paper](https://img.shields.io/static/v1.svg?logo=arxiv&label=Paper&message=Open%20Paper&color=green)](https://arxiv.org/abs/2310.18696)
+
+Official repository for the paper: 
+"Probing LLMs for Joint Encoding of Linguistic Categories." 
+Findings of EMNLP 2023.
+
+https://arxiv.org/abs/2310.18696
+
 ## Requirements and Setup
 
 Details such as python and package versions can be found in the generated
