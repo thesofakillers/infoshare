@@ -2,9 +2,8 @@
 
 [![Paper](https://img.shields.io/static/v1.svg?logo=arxiv&label=Paper&message=Open%20Paper&color=green)](https://arxiv.org/abs/2310.18696)
 
-Official repository for the paper: 
-"Probing LLMs for Joint Encoding of Linguistic Categories." 
-Findings of EMNLP 2023.
+Official repository for the paper: "Probing LLMs for Joint Encoding of
+Linguistic Categories." Findings of EMNLP 2023.
 
 https://arxiv.org/abs/2310.18696
 
@@ -63,3 +62,18 @@ tree . -L 3 --dirsfirst -I "*.eps|*.png|*.pdf|lightning_logs|*pycache*|backup"
 ```
 
 followed by some manual edits.
+
+## Citation
+
+If you use this code or find our work otherwise useful, please consider citing
+our paper:
+
+```bibtex
+@inproceedings{starace2023probing,
+  title={Probing LLMs for Joint Encoding of Linguistic Categories},
+  author={Starace, Giulio and Papakostas, Konstantinos and Choenni, Rochelle and Panagiotopoulos, Apostolos and Rosati, Matteo and Leidinger, Alina and Shutova, Ekaterina},
+  booktitle={Findings of the Association for Computational Linguistics: EMNLP 2023},
+  pages={7158--7179},
+  year={2023}
+}
+```
